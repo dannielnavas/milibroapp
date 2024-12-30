@@ -1,43 +1,38 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
+import { IconBook, IconNew } from "@/components/icons";
+import { Tabs } from "expo-router";
 
-import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+const TabBarIconBook = ({ color }: { color: string }) => <IconBook color={color} />;
+const TabBarIconNew = ({ color }: { color: string }) => <IconNew color={color} />;
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
+export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarStyle: {
+          backgroundColor: "#fff",
+          borderTopColor: "#f4a261",
+          height: 60,
+        },
         headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
-      }}>
+        tabBarActiveTintColor: "#f4a261",
+        tabBarInactiveTintColor: "#2a9d8f",
+        tabBarLabelStyle: {
+          fontSize: 14, // Increase the font size here
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: "Mi Biblioteca",
+          tabBarIcon: TabBarIconBook,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="new"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: "Mis nuevos libros",
+          tabBarIcon: TabBarIconNew,
         }}
       />
     </Tabs>
