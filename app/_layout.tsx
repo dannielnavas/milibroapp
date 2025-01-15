@@ -1,14 +1,24 @@
 import { Stack } from "expo-router";
+import { View } from "react-native";
 
 export default function RootLayout() {
   return (
-    <Stack>
-      <Stack.Screen
-        name="Mi libro"
-        options={{
-          headerShown: false, // Hide the header
+    <View style={{ flex: 1 }}>
+      <Stack
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: "red",
+          },
+          headerTintColor: "#334155",
+          headerTitleStyle: {
+            fontWeight: "bold",
+          },
+          headerTitle: "Mi librería",
+          headerShown: false,
+          headerRight: () => null,
+          headerLeft: () => null,
         }}
       />
-    </Stack>
+    </View>
   );
 }
