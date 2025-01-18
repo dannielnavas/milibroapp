@@ -1,85 +1,127 @@
-import AntDesign from "@expo/vector-icons/AntDesign";
-import * as Google from "expo-auth-session/providers/google";
-import * as WebBrowser from "expo-web-browser";
-import { useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
-
-// ios public Key: 444568869956-mogs1g6o522gdulmknnbok9imli5bsfq.apps.googleusercontent.com
-// android public Key: 444568869956-phb6pdu6hrt2p3n857m1mc3fceo5v4es.apps.googleusercontent.com
-
-WebBrowser.maybeCompleteAuthSession(); // permite abrir la modal al autenticar
+import { UserModel } from "@/models/user";
+import { useUserStore } from "@/store/useUserStore";
+import { useRouter } from "expo-router";
+import { useFormik } from "formik";
+import React, { useState } from "react";
+import {
+  Button,
+  StyleSheet,
+  Text,
+  TextInput,
+  ToastAndroid,
+  View,
+} from "react-native";
+import * as Yup from "yup";
 
 export default function App() {
-  const [accessToken, setAccessToken] = useState<string | undefined>(undefined);
-  const [user, setUser] = useState(null);
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId:
-      "381827746154-m6f3qdpspp4ulehpi0kpmn4qg8qo02q2.apps.googleusercontent.com",
-    iosClientId:
-      "381827746154-r3leljm1ll4e9bvdcdufq5nb6si6r3pi.apps.googleusercontent.com",
-    androidClientId:
-      "381827746154-gmbj6dj9od2rs2l9chp2d6528dpq67la.apps.googleusercontent.com",
+  const [error, setError] = useState(null);
+  const router = useRouter();
+  const addUserData = useUserStore((state) => state.addUser);
+  const formik = useFormik({
+    initialValues: initialValues(),
+    validationSchema: Yup.object(validationSchema()),
+    validateOnChange: false,
+    onSubmit: (formData) => {
+      setError(null);
+      const { email, password } = formData;
+      console.log(email, password);
+      fetchLogin({ email, password });
+    },
   });
 
-  useEffect(() => {
-    console.log("Datos iniciales", response);
-    debugger;
-    if (response?.type === "success") {
-      setAccessToken(response.params?.id_token);
-      accessToken && fetchUserInfo();
+  const fetchLogin = async ({
+    email,
+    password,
+  }: {
+    email: string;
+    password: string;
+  }) => {
+    try {
+      const response = await fetch("http://192.168.10.73:3000/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      const data: UserModel = await response.json();
+      console.log(data);
+      addUserData(data);
+      ToastAndroid.show("Inicio de sesión correcto", ToastAndroid.SHORT);
+      router.replace("/(tabs)#index");
+    } catch (error) {
+      console.log(error);
     }
-  }, [response, accessToken]);
-
-  const fetchUserInfo = async () => {
-    console.log("accessToken", accessToken);
-    let response = await fetch("https://www.googleapis.com/userinfo/v2/me", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    let userInfo = await response.json();
-    console.log("Datos del usuario", userInfo);
-    setUser(userInfo);
-    console.log(user);
   };
 
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      {/* title */}
-      <Text
-        style={{
-          fontSize: 40,
-          fontWeight: "bold",
-          marginBottom: 20,
-          textAlign: "center",
-        }}
-      >
-        Empieza a explorar tu colección ahora mismo.
-      </Text>
-      {/* subtitle */}
-      <Text style={{ fontSize: 20, marginBottom: 20, textAlign: "center" }}>
-        ¡Tu viaje literario comienza aquí! 🧡📚
-      </Text>
-      <Pressable
-        onPress={() => promptAsync()}
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          padding: 10,
-          backgroundColor: "white",
-          borderRadius: 55,
-          shadowColor: "black",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.2,
-          shadowRadius: 5,
-          elevation: 5,
-          gap: 10,
-          height: 50,
-          width: 200,
-          margin: 10,
-        }}
-      >
-        <AntDesign name="google" size={24} color="#4285F4" />
-        <Text>Login con Google</Text>
-      </Pressable>
+      <Text style={styles.title}>Iniciar sesión</Text>
+      <TextInput
+        placeholder="Email"
+        style={styles.input}
+        value={formik.values.email}
+        onChangeText={(text) => formik.setFieldValue("email", text)}
+      />
+      <TextInput
+        placeholder="Password"
+        style={styles.input}
+        secureTextEntry={true}
+        value={formik.values.password}
+        onChangeText={(text) => formik.setFieldValue("password", text)}
+      />
+
+      <Button title="Iniciar sesión" onPress={() => formik.handleSubmit()} />
+      <Text style={styles.error}>{formik.errors.email}</Text>
+      <Text style={styles.error}>{formik.errors.password}</Text>
+      <Text style={styles.error}>{error}</Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginTop: 50,
+    marginBottom: 15,
+  },
+  button: {
+    marginTop: 20,
+    width: 300,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: "#3498db",
+    color: "#fff",
+  },
+  input: {
+    height: 40,
+    margin: 12,
+    borderWidth: 1,
+    padding: 10,
+    borderRadius: 10,
+    width: 300,
+  },
+  error: {
+    color: "#f00",
+    textAlign: "center",
+    marginTop: 20,
+  },
+});
+
+const initialValues = () => {
+  return {
+    email: "",
+    password: "",
+  };
+};
+
+const validationSchema = () => {
+  return {
+    email: Yup.string()
+      .required("El nombre de usuario es obligatorio")
+      .email("El email no es válido"),
+    password: Yup.string().required("La contraseña es obligatoria"),
+  };
+};
