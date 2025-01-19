@@ -1,8 +1,9 @@
 import { UserModel } from "@/models/user";
 import { useUserStore } from "@/store/useUserStore";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { useFormik } from "formik";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Button,
   StyleSheet,
@@ -25,7 +26,7 @@ export default function App() {
       setError(null);
       const { email, password } = formData;
       console.log(email, password);
-      fetchLogin({ email, password });
+      fetchLogin({ email: email.toLowerCase(), password });
     },
   });
 
@@ -37,7 +38,7 @@ export default function App() {
     password: string;
   }) => {
     try {
-      const response = await fetch("http://192.168.10.73:3000/auth/login", {
+      const response = await fetch("http://192.168.10.55:3000/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,7 +46,7 @@ export default function App() {
         body: JSON.stringify({ email, password }),
       });
       const data: UserModel = await response.json();
-      console.log(data);
+      await SecureStore.setItemAsync("token", data.access_token);
       addUserData(data);
       ToastAndroid.show("Inicio de sesión correcto", ToastAndroid.SHORT);
       router.replace("/(tabs)#index");
@@ -53,6 +54,14 @@ export default function App() {
       console.log(error);
     }
   };
+
+  useEffect(() => {
+    SecureStore.getItemAsync("token").then((token) => {
+      if (token) {
+        router.replace("/(tabs)#index");
+      }
+    });
+  }, []);
 
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
