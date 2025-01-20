@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   FlatList,
   Platform,
+  Pressable,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -84,7 +85,31 @@ export default function Index() {
 
   return (
     <SafeAreaView className="flex flex-1 bg-slate-700">
-      {books.length === 0 && (
+      {/* float button style inline */}
+      <Pressable
+        style={{
+          zIndex: 1,
+          elevation: 10,
+          position: "absolute",
+          bottom: 20,
+          right: 20,
+          backgroundColor: "#3182CE",
+          width: 50,
+          height: 50,
+          borderRadius: 25,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+        onPress={() => router.push("/books/camera")}
+      >
+        <Text className="text-white text-2xl">+</Text>
+      </Pressable>
+      {books.length === 0 && !loading && (
+        <View className="flex flex-1 justify-center items-center">
+          <Text className="text-white">No hay libros</Text>
+        </View>
+      )}
+      {loading && (
         <View className="flex flex-1 justify-center items-center">
           <Text className="text-white">Cargando...</Text>
         </View>
