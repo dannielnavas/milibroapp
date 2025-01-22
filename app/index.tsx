@@ -2,14 +2,18 @@ import { UserModel } from "@/models/user";
 import { useUserStore } from "@/store/useUserStore";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import { StatusBar } from "expo-status-bar";
 import { useFormik } from "formik";
 import React, { useEffect, useState } from "react";
 import {
-  Button,
+  ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
   ToastAndroid,
+  TouchableOpacity,
   View,
 } from "react-native";
 import * as Yup from "yup";
@@ -38,7 +42,7 @@ export default function App() {
     password: string;
   }) => {
     try {
-      const response = await fetch("http://192.168.10.55:3000/auth/login", {
+      const response = await fetch("http://192.168.10.60:3000/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -64,58 +68,97 @@ export default function App() {
   }, []);
 
   return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <Text style={styles.title}>Iniciar sesión</Text>
-      <TextInput
-        placeholder="Email"
-        style={styles.input}
-        value={formik.values.email}
-        onChangeText={(text) => formik.setFieldValue("email", text)}
-      />
-      <TextInput
-        placeholder="Password"
-        style={styles.input}
-        secureTextEntry={true}
-        value={formik.values.password}
-        onChangeText={(text) => formik.setFieldValue("password", text)}
-      />
-
-      <Button title="Iniciar sesión" onPress={() => formik.handleSubmit()} />
-      <Text style={styles.error}>{formik.errors.email}</Text>
-      <Text style={styles.error}>{formik.errors.password}</Text>
-      <Text style={styles.error}>{error}</Text>
-    </View>
+    <ImageBackground
+      source={{
+        uri: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6",
+      }}
+      style={styles.background}
+    >
+      <StatusBar style="light" />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+      >
+        <View style={styles.overlay}>
+          <Text style={styles.title}>Mi Lista de Libros</Text>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Correo electrónico"
+              placeholderTextColor="#A0A0A0"
+              value={formik.values.email}
+              onChangeText={(text) => formik.setFieldValue("email", text)}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Contraseña"
+              placeholderTextColor="#A0A0A0"
+              value={formik.values.password}
+              onChangeText={(text) => formik.setFieldValue("password", text)}
+              secureTextEntry
+            />
+          </View>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => formik.handleSubmit()}
+          >
+            <Text style={styles.buttonText}>Iniciar Sesión</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+  },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  overlay: {
+    backgroundColor: "rgba(0,0,0,0.5)",
+    padding: 20,
+    borderRadius: 10,
+    width: "80%",
+    alignItems: "center",
+  },
   title: {
     fontSize: 28,
     fontWeight: "bold",
+    color: "#FFFFFF",
+    marginBottom: 20,
     textAlign: "center",
-    marginTop: 50,
-    marginBottom: 15,
   },
-  button: {
-    marginTop: 20,
-    width: 300,
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: "#3498db",
-    color: "#fff",
+  inputContainer: {
+    width: "100%",
   },
   input: {
-    height: 40,
-    margin: 12,
-    borderWidth: 1,
-    padding: 10,
-    borderRadius: 10,
-    width: 300,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    padding: 15,
+    borderRadius: 5,
+    fontSize: 16,
+    marginBottom: 15,
+    width: "100%",
   },
-  error: {
-    color: "#f00",
-    textAlign: "center",
-    marginTop: 20,
+  button: {
+    backgroundColor: "#4A90E2",
+    padding: 15,
+    borderRadius: 5,
+    width: "100%",
+    alignItems: "center",
+  },
+  buttonText: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "bold",
   },
 });
 

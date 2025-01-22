@@ -3,14 +3,14 @@ export interface SearchBook {
   openLibrary: OpenLibrary;
 }
 
-interface OpenLibrary {
+export interface OpenLibrary {
   isbn: Isbn;
   title: string;
   publishedDate: string;
   authors: string[];
   industryIdentifiers: any[];
   printType: string;
-  categories: any[];
+  categories: string[];
   imageLinks: ImageLinks;
   previewLink: string;
   infoLink: string;
@@ -30,7 +30,8 @@ interface Isbn {
   openlibrary: string[];
 }
 
-interface GoogleBooks {
+export interface GoogleBooks {
+  isbn: string | string[];
   title: string;
   publishedDate: string;
   description: string;

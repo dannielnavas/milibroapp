@@ -40,7 +40,7 @@ export default function New() {
     try {
       const token = await SecureStore.getItemAsync("token");
       const response = await fetch(
-        `http://192.168.10.55:3000/library/${idUser}/${wishlist}`,
+        `http://192.168.10.60:3000/library/${idUser}/${wishlist}`,
         {
           method: "GET",
           headers: {
@@ -59,7 +59,7 @@ export default function New() {
   const fetchBooks = async (idLibrary: string) => {
     try {
       const token = await SecureStore.getItemAsync("token");
-      const response = await fetch(`http://192.168.10.55:3000/books/${idLibrary}`, {
+      const response = await fetch(`http://192.168.10.60:3000/books/${idLibrary}`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,

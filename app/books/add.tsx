@@ -1,22 +1,31 @@
-import { SearchBook } from "@/models/books";
+import { GoogleBooks, OpenLibrary, SearchBook } from "@/models/books";
 import { useIsbnCodeStore } from "@/store/useIsbnCodeStore";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import {
   Image,
-  Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
+export const colors = {
+  background: "#f0f0f0",
+  text: "#333333",
+  primary: "#4a90e2",
+  border: "#cccccc",
+  buttonText: "#ffffff",
+  placeholderText: "#999999",
+};
+
 export default function Add() {
-  const [book, setBook] = useState<SearchBook>();
+  const [book, setBook] = useState<GoogleBooks | OpenLibrary>();
   const scannedData = useIsbnCodeStore((state) => state.isbnCode);
   useEffect(() => {
-    if (!scannedData) setBook({} as SearchBook);
+    if (!scannedData) setBook({} as GoogleBooks);
     void fetchBook(scannedData as string);
   }, []);
 
@@ -24,7 +33,7 @@ export default function Add() {
     try {
       const token = await SecureStore.getItemAsync("token");
       const response = await fetch(
-        `http://192.168.10.55:3000/books/search/${isbn}`,
+        `http://192.168.10.60:3000/books/search/${isbn}`,
         {
           method: "GET",
           headers: {
@@ -33,141 +42,157 @@ export default function Add() {
         }
       );
       const data: SearchBook = await response.json();
-      setBook(data);
-      console.log(data);
+      validateEmptyData(data);
     } catch (error) {
       console.log(error);
     }
   }
 
+  const validateEmptyData = (data: SearchBook) => {
+    if (Object.keys(data.openLibrary).length > 0) {
+      setBook(data.openLibrary);
+      return;
+    } else if (Object.keys(data.googleBooks).length > 0) {
+      setBook(data.googleBooks);
+      return;
+    }
+    setBook({} as GoogleBooks);
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <Text>{scannedData}</Text>
-      {book?.googleBooks ? (
-        <Text
-          style={{
-            fontSize: 20,
-            fontWeight: "bold",
-            color: "blue",
-            textDecorationLine: "underline",
-          }}
-        >
-          {book.googleBooks.title}
-        </Text>
-      ) : (
-        <Text>No encontramos datos </Text>
-      )}
-      {book?.openLibrary ? (
-        // formulario para agregar libro
+    <ScrollView style={styles.container}>
+      <Text style={styles.title}>Agregar Nuevo Libro</Text>
 
-        <ScrollView
-          horizontal={false}
-          showsHorizontalScrollIndicator={false}
-          pagingEnabled={false}
-          style={{
-            marginTop: 20,
-            height: 1200,
-            width: "100%",
-            flex: 1,
-            justifyContent: "center",
-            flexDirection: "column",
-          }}
-        >
-          <TextInput
-            placeholder="title"
-            style={styles.input}
-            value={book.openLibrary.title}
-          />
-          <TextInput
-            placeholder="publishedDate"
-            style={styles.input}
-            value={book.openLibrary.publishedDate}
-          />
-          <TextInput
-            placeholder="authors"
-            style={styles.input}
-            value={book.openLibrary.authors.join(", ")}
-          />
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Título</Text>
+        <TextInput
+          style={styles.input}
+          value={book?.title}
+          placeholder="Ingrese el título del libro"
+          placeholderTextColor={colors.placeholderText}
+        />
+      </View>
 
-          <TextInput
-            placeholder="publisher"
-            style={styles.input}
-            value={book.openLibrary.publisher}
-          />
-          <TextInput
-            placeholder="language"
-            style={styles.input}
-            value={book.openLibrary.language}
-          />
-          <TextInput
-            placeholder="pages"
-            style={styles.input}
-            value={book.openLibrary.pages.toString()}
-          />
-          <TextInput
-            placeholder="categories"
-            style={styles.input}
-            value={book.openLibrary.categories.join(", ")}
-          />
-          <TextInput
-            placeholder="previewLink"
-            style={styles.input}
-            value={book.openLibrary.previewLink}
-          />
-          <TextInput
-            placeholder="infoLink"
-            style={styles.input}
-            value={book.openLibrary.infoLink}
-          />
-          <TextInput
-            placeholder="isbn"
-            style={styles.input}
-            value={book.openLibrary.isbn.isbn_13.join(", ")}
-          />
-          <Image
-            style={styles.image}
-            source={{ uri: book.openLibrary.imageLinks.thumbnail }}
-          />
-          <Pressable
-            style={{
-              backgroundColor: "blue",
-              padding: 10,
-              borderRadius: 10,
-              marginTop: 10,
-            }}
-          >
-            <Text style={{ color: "white" }}>Agregar</Text>
-          </Pressable>
-        </ScrollView>
-      ) : (
-        <Text>No encontramos datos</Text>
-      )}
-    </SafeAreaView>
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Autores (separados por coma)</Text>
+        <TextInput
+          style={styles.input}
+          value={book?.authors.join(",")}
+          placeholder="Ingrese los autores"
+          placeholderTextColor={colors.placeholderText}
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>URL de la imagen</Text>
+        <TextInput
+          style={styles.input}
+          value={book?.imageLinks?.thumbnail}
+          placeholder="Ingrese la URL de la imagen"
+          placeholderTextColor={colors.placeholderText}
+        />
+
+        {book?.imageLinks?.thumbnail && (
+          <View style={{ marginTop: 10 }}>
+            <Image
+              source={{ uri: book?.imageLinks?.thumbnail }}
+              style={{ width: 100, height: 100 }}
+            />
+          </View>
+        )}
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>ISBN</Text>
+        <TextInput
+          style={styles.input}
+          value={
+            Array.isArray(book?.isbn)
+              ? book?.isbn.join(", ")
+              : book?.isbn?.toString()
+          }
+          placeholder="Ingrese el ISBN"
+          placeholderTextColor={colors.placeholderText}
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Idioma</Text>
+        <TextInput
+          style={styles.input}
+          value={book?.language}
+          placeholder="Ingrese el idioma"
+          placeholderTextColor={colors.placeholderText}
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Fecha de publicación</Text>
+        <TextInput
+          style={styles.input}
+          value={book?.publishedDate}
+          placeholder="Ingrese la fecha de publicación"
+          placeholderTextColor={colors.placeholderText}
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Editorial</Text>
+        <TextInput
+          style={styles.input}
+          value={book?.publisher}
+          placeholder="Ingrese la editorial"
+          placeholderTextColor={colors.placeholderText}
+        />
+      </View>
+
+      <TouchableOpacity style={styles.button} onPress={() => {}}>
+        <Text style={styles.buttonText}>Guardar Libro</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FFF",
+    padding: 20,
+    margin: 10,
+    backgroundColor: colors.background,
   },
-  text: {
-    fontSize: 18,
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: colors.text,
     marginBottom: 20,
+    textAlign: "center",
+  },
+  inputContainer: {
+    marginBottom: 15,
+  },
+  label: {
+    fontSize: 16,
+    color: colors.text,
+    marginBottom: 5,
   },
   input: {
-    height: 40,
-    margin: 12,
     borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 5,
     padding: 10,
-    borderRadius: 10,
-    width: 300,
+    fontSize: 16,
+    color: colors.text,
   },
-  image: {
-    width: 300,
-    height: 300,
-    borderRadius: 10,
-    objectFit: "cover",
+  button: {
+    backgroundColor: colors.primary,
+    padding: 15,
+    borderRadius: 5,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  buttonText: {
+    color: colors.buttonText,
+    fontSize: 18,
+    fontWeight: "bold",
   },
 });
