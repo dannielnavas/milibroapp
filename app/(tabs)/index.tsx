@@ -1,4 +1,5 @@
 import { Book } from "@/components/cardBook";
+import { useLibraryStore } from "@/store/useLibraryStore";
 import { useUserStore } from "@/store/useUserStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -35,6 +36,7 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
   const [books, setBooks] = useState<Book[]>([]);
   const userData = useUserStore((state) => state.user);
+  const addLibrary = useLibraryStore((state) => state.addLibrary);
   useEffect(() => {
     try {
       if (!userData) {
@@ -66,6 +68,7 @@ export default function Index() {
       );
       const data: Library = await response.json();
       console.log(data);
+      addLibrary({ id: data._id, wishlist: data.wishlist });
       void fetchBooks(data._id);
     } catch (error) {
       setLoading(false);
