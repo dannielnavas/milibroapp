@@ -101,7 +101,6 @@ export default function Index() {
         }
       );
       const data: Library = await response.json();
-      console.log(data);
       addLibrary({ id: data._id, wishlist: data.wishlist });
       void fetchBooks(data._id);
     } catch (error) {
@@ -122,7 +121,6 @@ export default function Index() {
         }
       );
       const data: Book[] = await response.json();
-      console.log(data);
       setBooks(data);
       setLoading(false);
     } catch (error) {
@@ -202,7 +200,6 @@ export default function Index() {
         transparent={true}
         visible={modalVisible}
         onRequestClose={() => {
-          console.log("Modal has been closed.");
           setModalVisible(!modalVisible);
           router.push("/books/add");
         }}

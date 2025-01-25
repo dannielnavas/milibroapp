@@ -29,7 +29,6 @@ export default function App() {
     onSubmit: (formData) => {
       setError(null);
       const { email, password } = formData;
-      console.log(email, password);
       fetchLogin({ email: email.toLowerCase(), password });
     },
   });

@@ -43,17 +43,13 @@ export default function Add() {
     validateOnChange: false,
     onSubmit: (formData) => {
       setLoading(true);
-      console.log("Formulario");
       setError(null);
-      console.log(formData);
       addBook(formData);
     },
   });
 
   const addBook = async (formData: any) => {
     try {
-      console.log("Agregando libro");
-      console.log(library);
       const payload = {
         ...formData,
         library: library.id,
@@ -127,7 +123,6 @@ export default function Add() {
 
   const validateEmptyData = (data: SearchBook) => {
     if (Object.keys(data.openLibrary).length > 0) {
-      console.log("OpenLibrary");
       const author = data.openLibrary?.authors?.join(",") ?? "";
       formik.setValues({
         title: data.openLibrary.title || "",
@@ -142,7 +137,6 @@ export default function Add() {
       setLoading(false);
       return;
     } else if (Object.keys(data.googleBooks).length > 0) {
-      console.log("GoogleBooks");
       const author = data.googleBooks?.authors?.join(",") ?? "";
       formik.setValues({
         title: data.googleBooks.title || "",

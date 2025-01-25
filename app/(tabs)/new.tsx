@@ -51,7 +51,6 @@ export default function New() {
         }
       );
       const data: Library = await response.json();
-      console.log(data);
       addLibrary({ id: data._id, wishlist: data.wishlist });
       void fetchBooks(data._id);
     } catch (error) {
