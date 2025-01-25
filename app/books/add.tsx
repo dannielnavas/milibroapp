@@ -1,14 +1,15 @@
-import { GoogleBooks, OpenLibrary, SearchBook } from "@/models/books";
+import { SearchBook } from "@/models/books";
 import { useIsbnCodeStore } from "@/store/useIsbnCodeStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
-import { useRouter } from "expo-router";
+import { useTitleStore } from "@/store/useTitleStore";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { Link, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useFormik } from "formik";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as Yup from "yup";
 
 export const colors = {
@@ -30,11 +32,10 @@ export const colors = {
 export default function Add() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [book, setBook] = useState<GoogleBooks | OpenLibrary>();
-  const [author, setAuthor] = useState("");
   const router = useRouter();
   const scannedData = useIsbnCodeStore((state) => state.isbnCode);
   const library = useLibraryStore((state) => state.library);
+  const title = useTitleStore((state) => state.title);
 
   const formik = useFormik({
     initialValues: initialValues(),
@@ -51,12 +52,15 @@ export default function Add() {
 
   const addBook = async (formData: any) => {
     try {
+      console.log("Agregando libro");
+      console.log(library);
       const payload = {
         ...formData,
-        ...library,
+        library: library.id,
+        wishlist: library.wishlist,
       };
       const token = await SecureStore.getItemAsync("token");
-      const response = await fetch("http://192.168.10.60:3000/books", {
+      const response = await fetch("https://milibro-danniel-dev.vercel.app/books", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -74,19 +78,39 @@ export default function Add() {
   };
 
   useEffect(() => {
-    if (!scannedData) {
-      setBook({} as GoogleBooks);
+    if (title) {
+      fetchBookForTitle(title);
       return;
     }
-    console.log(library);
-    void fetchBook(scannedData as string);
+    if (scannedData) {
+      fetchBook(scannedData);
+    }
   }, []);
+
+  async function fetchBookForTitle(title: string) {
+    try {
+      const token = await SecureStore.getItemAsync("token");
+      const response = await fetch(
+        `https://milibro-danniel-dev.vercel.app/books/search-title/${title}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const data: SearchBook = await response.json();
+      validateEmptyData(data);
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
   async function fetchBook(isbn: string) {
     try {
       const token = await SecureStore.getItemAsync("token");
       const response = await fetch(
-        `http://192.168.10.60:3000/books/search/${isbn}`,
+        `https://milibro-danniel-dev.vercel.app/books/search/${isbn}`,
         {
           method: "GET",
           headers: {
@@ -102,17 +126,13 @@ export default function Add() {
   }
 
   const validateEmptyData = (data: SearchBook) => {
-    console.log("---".repeat(100));
-    console.log(data);
     if (Object.keys(data.openLibrary).length > 0) {
       console.log("OpenLibrary");
       const author = data.openLibrary?.authors?.join(",") ?? "";
-      setAuthor(author);
-      setBook(data.openLibrary);
       formik.setValues({
         title: data.openLibrary.title || "",
         author: author,
-        isbn: scannedData || "",
+        isbn: scannedData ?? "",
         publication_year: parseInt(data.openLibrary.publishedDate) || 0,
         publisher: data.openLibrary.publisher || "",
         image_url: data.openLibrary.imageLinks?.thumbnail || "",
@@ -124,12 +144,10 @@ export default function Add() {
     } else if (Object.keys(data.googleBooks).length > 0) {
       console.log("GoogleBooks");
       const author = data.googleBooks?.authors?.join(",") ?? "";
-      setAuthor(author);
-      setBook(data.googleBooks);
       formik.setValues({
         title: data.googleBooks.title || "",
         author: author,
-        isbn: scannedData || "",
+        isbn: scannedData ?? "",
         publication_year: parseInt(data.googleBooks.publishedDate) || 0,
         publisher: data.googleBooks.publisher || "",
         image_url: data.googleBooks.imageLinks?.thumbnail || "",
@@ -139,15 +157,18 @@ export default function Add() {
       setLoading(false);
       return;
     }
-    setBook({} as GoogleBooks);
   };
 
   return (
     <SafeAreaView style={styles.mainContainer}>
+      <Link href={"/(tabs)#index"} style={{ padding: 10 }}>
+        <Ionicons name="arrow-back-outline" size={24} color="black" />
+      </Link>
+
       <View style={styles.mainContainer}>
         {loading && (
           <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-            <ActivityIndicator size="large" color="#00ff00" />
+            <ActivityIndicator size="large" color="#43c1d1" />
             <Text>Cargando...</Text>
           </View>
         )}
@@ -160,7 +181,7 @@ export default function Add() {
           >
             <Text style={styles.title}>Agregar Nuevo Libro</Text>
 
-            {formik.values.image_url && (
+            {!!formik.values.image_url && (
               <View style={{ marginTop: 10 }}>
                 <Image
                   source={{ uri: formik.values.image_url }}
@@ -327,12 +348,12 @@ const initialValues = () => {
 
 const validationSchema = () => {
   return {
-    // title: Yup.string().required("El título es requerido"),
-    // author: Yup.string().required("El autor es requerido"),
-    // isbn: Yup.string().required("El ISBN es requerido"),
-    // publication_year: Yup.number().required("El año de publicación es requerido"),
-    // publisher: Yup.string().required("La editorial es requerida"),
-    // image_url: Yup.string().required("La URL de la imagen es requerida"),
-    // lenguaje: Yup.string().required("El idioma es requerido"),
+    title: Yup.string().required("El título es requerido"),
+    author: Yup.string().required("El autor es requerido"),
+    isbn: Yup.string().required("El ISBN es requerido"),
+    publication_year: Yup.number().required("El año de publicación es requerido"),
+    publisher: Yup.string().required("La editorial es requerida"),
+    image_url: Yup.string().required("La URL de la imagen es requerida"),
+    lenguaje: Yup.string().required("El idioma es requerido"),
   };
 };

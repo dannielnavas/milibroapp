@@ -42,7 +42,7 @@ export default function New() {
     try {
       const token = await SecureStore.getItemAsync("token");
       const response = await fetch(
-        `http://192.168.10.60:3000/library/${idUser}/${wishlist}`,
+        `https://milibro-danniel-dev.vercel.app/library/${idUser}/${wishlist}`,
         {
           method: "GET",
           headers: {
@@ -62,12 +62,15 @@ export default function New() {
   const fetchBooks = async (idLibrary: string) => {
     try {
       const token = await SecureStore.getItemAsync("token");
-      const response = await fetch(`http://192.168.10.60:3000/books/${idLibrary}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(
+        `https://milibro-danniel-dev.vercel.app/books/${idLibrary}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       const data: Book[] = await response.json();
       console.log(data);
       setBooks(data);

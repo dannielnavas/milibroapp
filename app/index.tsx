@@ -42,13 +42,16 @@ export default function App() {
     password: string;
   }) => {
     try {
-      const response = await fetch("http://192.168.10.60:3000/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      const response = await fetch(
+        "https://milibro-danniel-dev.vercel.app/auth/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        }
+      );
       const data: UserModel = await response.json();
       await SecureStore.setItemAsync("token", data.access_token);
       addUserData(data);

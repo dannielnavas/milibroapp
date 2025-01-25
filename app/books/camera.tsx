@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   camera: {
-    width: "90%",
-    height: "70%",
+    width: "70%",
+    height: "20%",
   },
 });
