@@ -1,11 +1,13 @@
 import { UserModel } from "@/models/user";
 import { useUserStore } from "@/store/useUserStore";
+import * as LocalAuthentication from "expo-local-authentication";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { StatusBar } from "expo-status-bar";
 import { useFormik } from "formik";
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   ImageBackground,
   KeyboardAvoidingView,
   Platform,
@@ -22,6 +24,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const router = useRouter();
   const addUserData = useUserStore((state) => state.addUser);
+  const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
   const formik = useFormik({
     initialValues: initialValues(),
     validationSchema: Yup.object(validationSchema()),
@@ -54,6 +57,7 @@ export default function App() {
       const data: UserModel = await response.json();
       await SecureStore.setItemAsync("token", data.access_token);
       addUserData(data);
+      SecureStore.setItemAsync("dataUser", JSON.stringify({ email, password }));
       ToastAndroid.show("Inicio de sesión correcto", ToastAndroid.SHORT);
       router.replace("/(tabs)#index");
     } catch (error) {
@@ -67,6 +71,62 @@ export default function App() {
         router.replace("/(tabs)#index");
       }
     });
+  }, []);
+
+  const checkBiometricAvailability = async () => {
+    const compatible = await LocalAuthentication.hasHardwareAsync();
+
+    if (!compatible) {
+      Alert.alert(
+        "Dispositivo no compatible",
+        "Este dispositivo no soporta autenticación biométrica."
+      );
+    }
+  };
+
+  const handleAuthentication = async () => {
+    try {
+      const hasEnrolled = await LocalAuthentication.isEnrolledAsync();
+      if (!hasEnrolled) {
+        Alert.alert(
+          "Sin datos biométricos",
+          "No se han registrado datos biométricos en este dispositivo."
+        );
+        return;
+      }
+
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: "Confirma tu identidad",
+        fallbackLabel: "Usar contraseña",
+        disableDeviceFallback: false,
+      });
+
+      if (result.success) {
+        const data = JSON.parse(
+          (await SecureStore.getItemAsync("dataUser")) ?? "{}"
+        );
+        await fetchLogin(data);
+      } else {
+        Alert.alert("Autenticación fallida", result.error || "Intenta de nuevo.");
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Ocurrió un error al intentar autenticar.");
+    }
+  };
+
+  useEffect(() => {
+    const checkBiometricAndLogin = async () => {
+      await checkBiometricAvailability();
+      const loginBiometric = await SecureStore.getItemAsync("dataUser");
+
+      if (loginBiometric) {
+        setIsBiometricAvailable(true);
+        handleAuthentication();
+      }
+    };
+
+    checkBiometricAndLogin();
   }, []);
 
   return (
@@ -83,25 +143,27 @@ export default function App() {
       >
         <View style={styles.overlay}>
           <Text style={styles.title}>Mi Lista de Libros</Text>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Correo electrónico"
-              placeholderTextColor="#A0A0A0"
-              value={formik.values.email}
-              onChangeText={(text) => formik.setFieldValue("email", text)}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Contraseña"
-              placeholderTextColor="#A0A0A0"
-              value={formik.values.password}
-              onChangeText={(text) => formik.setFieldValue("password", text)}
-              secureTextEntry
-            />
-          </View>
+          {isBiometricAvailable && (
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Correo electrónico"
+                placeholderTextColor="#A0A0A0"
+                value={formik.values.email}
+                onChangeText={(text) => formik.setFieldValue("email", text)}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Contraseña"
+                placeholderTextColor="#A0A0A0"
+                value={formik.values.password}
+                onChangeText={(text) => formik.setFieldValue("password", text)}
+                secureTextEntry
+              />
+            </View>
+          )}
           <TouchableOpacity
             style={styles.button}
             onPress={() => formik.handleSubmit()}
