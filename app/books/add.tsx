@@ -100,8 +100,6 @@ export default function Add() {
       const data: SearchBook = await response.json();
       setLoading(false);
       setAllResult(data.googleBooks as unknown as GoogleBooks[]);
-      console.log(allResult);
-      // validateEmptyData(data);
     } catch (error) {
       console.log(error);
     }

@@ -71,7 +71,6 @@ export default function New() {
         }
       );
       const data: Book[] = await response.json();
-      console.log(data);
       setBooks(data);
       setLoading(false);
     } catch (error) {
