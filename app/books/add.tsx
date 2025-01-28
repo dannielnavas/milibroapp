@@ -1,4 +1,4 @@
-import { SearchBook } from "@/models/books";
+import { GoogleBooks, OpenLibrary, SearchBook } from "@/models/books";
 import { useIsbnCodeStore } from "@/store/useIsbnCodeStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { useTitleStore } from "@/store/useTitleStore";
@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -32,6 +33,7 @@ export const colors = {
 export default function Add() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [allResult, setAllResult] = useState<GoogleBooks[]>();
   const router = useRouter();
   const scannedData = useIsbnCodeStore((state) => state.isbnCode);
   const library = useLibraryStore((state) => state.library);
@@ -96,7 +98,10 @@ export default function Add() {
         }
       );
       const data: SearchBook = await response.json();
-      validateEmptyData(data);
+      setLoading(false);
+      setAllResult(data.googleBooks as unknown as GoogleBooks[]);
+      console.log(allResult);
+      // validateEmptyData(data);
     } catch (error) {
       console.log(error);
     }
@@ -167,7 +172,40 @@ export default function Add() {
           </View>
         )}
 
-        {!loading && (
+        {allResult?.length !== 0 && (
+          <ScrollView
+            style={styles.container}
+            contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.bookGrid}>
+              {allResult?.map((book, index) => (
+                <View key={index}>
+                  <Pressable
+                    style={styles.bookCard}
+                    onPress={() => {
+                      setAllResult([]);
+                      validateEmptyData({
+                        googleBooks: book,
+                        openLibrary: {} as OpenLibrary,
+                      });
+                    }}
+                  >
+                    <View style={styles.imageContainer}>
+                      <Image
+                        source={{ uri: book.imageLinks?.thumbnail }}
+                        style={styles.bookCover}
+                        resizeMode="cover"
+                      />
+                    </View>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        )}
+
+        {!loading && allResult?.length === 0 && (
           <ScrollView
             style={styles.container}
             contentContainerStyle={styles.contentContainer}
@@ -324,6 +362,34 @@ const styles = StyleSheet.create({
     color: colors.buttonText,
     fontSize: 18,
     fontWeight: "bold",
+  },
+  bookCard: {
+    width: 160, // Ancho fijo en lugar de porcentaje
+    marginBottom: 32,
+  },
+  imageContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 2,
+    overflow: "hidden",
+    aspectRatio: 0.7, // Mantiene una proporción consistente
+  },
+  bookCover: {
+    width: "100%", // Ocupa todo el ancho del contenedor
+    height: "100%", // Ocupa todo el alto del contenedor
+    objectFit: "cover",
+  },
+  bookGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-around",
   },
 });
 

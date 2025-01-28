@@ -107,11 +107,10 @@ export default function App() {
         );
         await fetchLogin(data);
       } else {
-        Alert.alert("Autenticación fallida", result.error || "Intenta de nuevo.");
+        console.log(result.error);
       }
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Ocurrió un error al intentar autenticar.");
     }
   };
 
@@ -143,27 +142,25 @@ export default function App() {
       >
         <View style={styles.overlay}>
           <Text style={styles.title}>Mi Lista de Libros</Text>
-          {isBiometricAvailable && (
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Correo electrónico"
-                placeholderTextColor="#A0A0A0"
-                value={formik.values.email}
-                onChangeText={(text) => formik.setFieldValue("email", text)}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Contraseña"
-                placeholderTextColor="#A0A0A0"
-                value={formik.values.password}
-                onChangeText={(text) => formik.setFieldValue("password", text)}
-                secureTextEntry
-              />
-            </View>
-          )}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Correo electrónico"
+              placeholderTextColor="#A0A0A0"
+              value={formik.values.email}
+              onChangeText={(text) => formik.setFieldValue("email", text)}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Contraseña"
+              placeholderTextColor="#A0A0A0"
+              value={formik.values.password}
+              onChangeText={(text) => formik.setFieldValue("password", text)}
+              secureTextEntry
+            />
+          </View>
           <TouchableOpacity
             style={styles.button}
             onPress={() => formik.handleSubmit()}

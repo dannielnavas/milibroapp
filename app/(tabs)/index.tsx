@@ -163,9 +163,7 @@ export default function Index() {
               }}
             >
               <Feather name="camera" size={24} color="black" />
-              <Text style={styles.modalText}>
-                Agregar libro scanear codigo ISBN q
-              </Text>
+              <Text style={styles.modalText}>Agregar libro scanear codigo ISBN</Text>
             </Pressable>
 
             <Pressable
@@ -182,7 +180,7 @@ export default function Index() {
               }}
             >
               <AntDesign name="edit" size={24} color="black" />
-              <Text style={styles.modalText}>Añadir libro de forma manual as</Text>
+              <Text style={styles.modalText}>Añadir libro de forma manual</Text>
             </Pressable>
 
             {/* <Text style={styles.modalText}>Este es un modal desde abajo 🎉</Text> */}
@@ -206,7 +204,7 @@ export default function Index() {
       >
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
-            <Text style={styles.modalText}>Buscar un libro por su titulo a</Text>
+            <Text style={styles.modalText}>Buscar un libro por su titulo</Text>
             <TextInput
               style={styles.input}
               placeholder="Titulo del libro"
