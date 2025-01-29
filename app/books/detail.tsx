@@ -1,5 +1,7 @@
 import { Book } from "@/components/cardBook";
 import { useDetailsStore } from "@/store/useDetailsStore";
+import { Ionicons } from "@expo/vector-icons";
+import { Link } from "expo-router";
 import { Image, SafeAreaView, StyleSheet, Text, View } from "react-native";
 
 export default function detail() {
@@ -7,6 +9,38 @@ export default function detail() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <Link
+        href={"/(tabs)#index"}
+        style={{
+          backgroundColor: "#2f95dc",
+        }}
+      >
+        <View
+          style={{
+            display: "flex",
+            justifyContent: "flex-start",
+            gap: 16,
+            alignItems: "center",
+            flexDirection: "row",
+            width: "100%",
+            height: 64,
+            padding: 16,
+          }}
+        >
+          <Ionicons name="arrow-back-outline" size={24} color="white" />
+          <Text
+            style={{
+              fontSize: 24,
+              fontWeight: "bold",
+              color: "white",
+              height: 44,
+              textAlignVertical: "center",
+            }}
+          >
+            {book.title}
+          </Text>
+        </View>
+      </Link>
       <View style={styles.contentContainer}>
         <View style={styles.imageContainer}>
           <Image
