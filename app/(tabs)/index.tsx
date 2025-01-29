@@ -1,4 +1,5 @@
 import { Book } from "@/components/cardBook";
+import { useDetailsStore } from "@/store/useDetailsStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { useTitleStore } from "@/store/useTitleStore";
 import { useUserStore } from "@/store/useUserStore";
@@ -48,6 +49,7 @@ export default function Index() {
   const setTitle = useTitleStore((state) => state.setTitle);
   const title = useTitleStore((state) => state.title);
   const addLibrary = useLibraryStore((state) => state.addLibrary);
+  const addBook = useDetailsStore((state) => state.addBook);
   const [modalVisible, setModalVisible] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const slideAnim = useRef(new Animated.Value(300)).current; // Altura inicial fuera de la pantalla
@@ -235,7 +237,13 @@ export default function Index() {
         <View style={styles.bookGrid}>
           {books.map((book) => (
             <View key={book._id}>
-              <Pressable style={styles.bookCard}>
+              <Pressable
+                style={styles.bookCard}
+                onPress={() => {
+                  addBook(book);
+                  router.push("/books/detail");
+                }}
+              >
                 <View style={styles.imageContainer}>
                   <Image
                     source={{ uri: book.image_url }}

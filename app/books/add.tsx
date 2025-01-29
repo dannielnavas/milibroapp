@@ -9,6 +9,7 @@ import { useFormik } from "formik";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   Image,
   Pressable,
   ScrollView,
@@ -33,7 +34,7 @@ export const colors = {
 export default function Add() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [allResult, setAllResult] = useState<GoogleBooks[]>();
+  const [allResult, setAllResult] = useState<GoogleBooks[]>([]);
   const router = useRouter();
   const scannedData = useIsbnCodeStore((state) => state.isbnCode);
   const library = useLibraryStore((state) => state.library);
@@ -177,28 +178,32 @@ export default function Add() {
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.bookGrid}>
-              {allResult?.map((book, index) => (
-                <View key={index}>
+              <FlatList
+                data={allResult}
+                keyExtractor={(_, index) => index.toString()}
+                renderItem={({ item }) => (
                   <Pressable
                     style={styles.bookCard}
                     onPress={() => {
                       setAllResult([]);
                       validateEmptyData({
-                        googleBooks: book,
+                        googleBooks: item,
                         openLibrary: {} as OpenLibrary,
                       });
                     }}
                   >
                     <View style={styles.imageContainer}>
                       <Image
-                        source={{ uri: book.imageLinks?.thumbnail }}
+                        source={{ uri: item.imageLinks?.thumbnail }}
                         style={styles.bookCover}
                         resizeMode="cover"
                       />
                     </View>
                   </Pressable>
-                </View>
-              ))}
+                )}
+                numColumns={2}
+                contentContainerStyle={styles.bookGrid}
+              />
             </View>
           </ScrollView>
         )}
@@ -212,10 +217,11 @@ export default function Add() {
             <Text style={styles.title}>Agregar Nuevo Libro</Text>
 
             {!!formik.values.image_url && (
-              <View style={{ marginTop: 10 }}>
+              <View style={{ marginTop: 10, alignItems: "center" }}>
                 <Image
                   source={{ uri: formik.values.image_url }}
-                  style={{ width: 100, height: 100, margin: 10, marginBottom: 20 }}
+                  style={{ width: 200, height: 300, margin: 10, marginBottom: 20 }}
+                  resizeMode="cover"
                 />
               </View>
             )}
@@ -364,6 +370,7 @@ const styles = StyleSheet.create({
   bookCard: {
     width: 160, // Ancho fijo en lugar de porcentaje
     marginBottom: 32,
+    marginLeft: 20,
   },
   imageContainer: {
     backgroundColor: "#fff",
@@ -388,6 +395,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-around",
+    gap: 20,
   },
 });
 

@@ -30,7 +30,6 @@ interface CardBookProps {
 const CardBook = ({ book }: CardBookProps) => {
   const router = useRouter();
   const goToBooks = () => {
-    //   navigation.navigate("Pokemon", { pokemonId: pokemon.id });
     router.push("/books/books");
   };
 
