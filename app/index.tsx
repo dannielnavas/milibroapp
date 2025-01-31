@@ -7,6 +7,7 @@ import { StatusBar } from "expo-status-bar";
 import { useFormik } from "formik";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   ImageBackground,
   KeyboardAvoidingView,
@@ -22,6 +23,7 @@ import * as Yup from "yup";
 
 export default function App() {
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const addUserData = useUserStore((state) => state.addUser);
   const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
@@ -30,6 +32,7 @@ export default function App() {
     validationSchema: Yup.object(validationSchema()),
     validateOnChange: false,
     onSubmit: (formData) => {
+      setLoading(true);
       setError(null);
       const { email, password } = formData;
       fetchLogin({ email: email.toLowerCase(), password });
@@ -59,8 +62,10 @@ export default function App() {
       addUserData(data);
       SecureStore.setItemAsync("dataUser", JSON.stringify({ email, password }));
       ToastAndroid.show("Inicio de sesión correcto", ToastAndroid.SHORT);
+      setLoading(false);
       router.replace("/(tabs)#index");
     } catch (error) {
+      setLoading(false);
       console.log(error);
     }
   };
@@ -102,6 +107,7 @@ export default function App() {
       });
 
       if (result.success) {
+        setLoading(true);
         const data = JSON.parse(
           (await SecureStore.getItemAsync("dataUser")) ?? "{}"
         );
@@ -140,34 +146,42 @@ export default function App() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.container}
       >
-        <View style={styles.overlay}>
-          <Text style={styles.title}>Mi Lista de Libros</Text>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Correo electrónico"
-              placeholderTextColor="#A0A0A0"
-              value={formik.values.email}
-              onChangeText={(text) => formik.setFieldValue("email", text)}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Contraseña"
-              placeholderTextColor="#A0A0A0"
-              value={formik.values.password}
-              onChangeText={(text) => formik.setFieldValue("password", text)}
-              secureTextEntry
-            />
+        {loading && (
+          <View style={styles.overlay}>
+            <ActivityIndicator size="large" color="#FFFFFF" />
+            <Text style={styles.title}>Iniciando Sesión...</Text>
           </View>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => formik.handleSubmit()}
-          >
-            <Text style={styles.buttonText}>Iniciar Sesión</Text>
-          </TouchableOpacity>
-        </View>
+        )}
+        {!loading && (
+          <View style={styles.overlay}>
+            <Text style={styles.title}>Mi Lista de Libros</Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Correo electrónico"
+                placeholderTextColor="#A0A0A0"
+                value={formik.values.email}
+                onChangeText={(text) => formik.setFieldValue("email", text)}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Contraseña"
+                placeholderTextColor="#A0A0A0"
+                value={formik.values.password}
+                onChangeText={(text) => formik.setFieldValue("password", text)}
+                secureTextEntry
+              />
+            </View>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => formik.handleSubmit()}
+            >
+              <Text style={styles.buttonText}>Iniciar Sesión</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </ImageBackground>
   );

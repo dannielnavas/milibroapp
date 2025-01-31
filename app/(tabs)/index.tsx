@@ -123,6 +123,15 @@ export default function Index() {
         }
       );
       const data: Book[] = await response.json();
+      data.sort((a, b) => {
+        if (a.author > b.author) {
+          return 1;
+        }
+        if (a.author < b.author) {
+          return -1;
+        }
+        return 0;
+      });
       setBooks(data);
       setLoading(false);
     } catch (error) {
@@ -185,7 +194,6 @@ export default function Index() {
               <Text style={styles.modalText}>Añadir libro de forma manual</Text>
             </Pressable>
 
-            {/* <Text style={styles.modalText}>Este es un modal desde abajo 🎉</Text> */}
             <Pressable onPress={closeModal} style={styles.closeButton}>
               <Text style={styles.buttonText}>Cerrar</Text>
             </Pressable>
@@ -246,7 +254,7 @@ export default function Index() {
               >
                 <View style={styles.imageContainer}>
                   <Image
-                    source={{ uri: book.image_url }}
+                    source={{ uri: book.image_url.replace("http://", "https://") }}
                     style={styles.bookCover}
                     resizeMode="cover"
                   />

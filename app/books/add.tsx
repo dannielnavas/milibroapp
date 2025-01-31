@@ -9,6 +9,7 @@ import { useFormik } from "formik";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Pressable,
@@ -98,8 +99,24 @@ export default function Add() {
           },
         }
       );
+
       const data: SearchBook = await response.json();
+      if (
+        Object.keys(data.openLibrary).length === 0 &&
+        Object.keys(data.googleBooks).length === 0
+      ) {
+        Alert.alert("No se encontraron resultados", "Intenta con otro título", [
+          {
+            text: "Aceptar",
+            onPress: () => {
+              setLoading(false);
+              router.replace("/(tabs)#index");
+            },
+          },
+        ]);
+      }
       setLoading(false);
+
       setAllResult(data.googleBooks as unknown as GoogleBooks[]);
     } catch (error) {
       console.log(error);
@@ -118,7 +135,23 @@ export default function Add() {
           },
         }
       );
+
       const data: SearchBook = await response.json();
+
+      if (
+        Object.keys(data.openLibrary).length === 0 &&
+        Object.keys(data.googleBooks).length === 0
+      ) {
+        Alert.alert("No se encontraron resultados", "Intenta con otro título", [
+          {
+            text: "Aceptar",
+            onPress: () => {
+              setLoading(false);
+              router.replace("/(tabs)#index");
+            },
+          },
+        ]);
+      }
       validateEmptyData(data);
     } catch (error) {
       console.log(error);
@@ -194,7 +227,12 @@ export default function Add() {
                   >
                     <View style={styles.imageContainer}>
                       <Image
-                        source={{ uri: item.imageLinks?.thumbnail }}
+                        source={{
+                          uri: item.imageLinks?.thumbnail.replace(
+                            "http://",
+                            "https://"
+                          ),
+                        }}
                         style={styles.bookCover}
                         resizeMode="cover"
                       />
