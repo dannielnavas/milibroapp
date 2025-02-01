@@ -121,12 +121,6 @@ export default function New() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {loading && (
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <ActivityIndicator size="large" color="#2ce" />
-          <Text>Cargando...</Text>
-        </View>
-      )}
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.libraryStats}>{books.length} libros </Text>
@@ -217,11 +211,16 @@ export default function New() {
               onEndReachedThreshold={0.1}
               ListFooterComponent={
                 loading ? (
-                  <ActivityIndicator
-                    size="large"
-                    style={styles.spinner}
-                    color="#aeaeae"
-                  />
+                  <View
+                    style={{
+                      flex: 1,
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    <ActivityIndicator size="large" color="#2ce" />
+                    <Text>Cargando...</Text>
+                  </View>
                 ) : null
               }
             />
