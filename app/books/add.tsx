@@ -99,24 +99,22 @@ export default function Add() {
           },
         }
       );
-
       const data: SearchBook = await response.json();
-      if (
-        Object.keys(data.openLibrary).length === 0 &&
-        Object.keys(data.googleBooks).length === 0
-      ) {
-        Alert.alert("No se encontraron resultados", "Intenta con otro título", [
-          {
-            text: "Aceptar",
-            onPress: () => {
-              setLoading(false);
-              router.replace("/(tabs)#index");
-            },
-          },
-        ]);
-      }
       setLoading(false);
-
+      if (Object.keys(data.googleBooks).length === 0) {
+        Alert.alert(
+          "No se encontraron resultados",
+          "Intenta buscar por el autor o el ISBN",
+          [
+            {
+              text: "Aceptar",
+              onPress: () => {
+                router.replace("/(tabs)#index");
+              },
+            },
+          ]
+        );
+      }
       setAllResult(data.googleBooks as unknown as GoogleBooks[]);
     } catch (error) {
       console.log(error);
@@ -138,20 +136,6 @@ export default function Add() {
 
       const data: SearchBook = await response.json();
 
-      if (
-        Object.keys(data.openLibrary).length === 0 &&
-        Object.keys(data.googleBooks).length === 0
-      ) {
-        Alert.alert("No se encontraron resultados", "Intenta con otro título", [
-          {
-            text: "Aceptar",
-            onPress: () => {
-              setLoading(false);
-              router.replace("/(tabs)#index");
-            },
-          },
-        ]);
-      }
       validateEmptyData(data);
     } catch (error) {
       console.log(error);
@@ -187,6 +171,21 @@ export default function Add() {
       });
       setLoading(false);
       return;
+    } else {
+      Alert.alert(
+        "No se encontraron resultados",
+        "Intenta agregarlo de forma manual",
+        [
+          {
+            text: "Aceptar",
+            onPress: () => {
+              setLoading(false);
+              router.replace("/(tabs)#index");
+            },
+          },
+        ]
+      );
+      setLoading(false);
     }
   };
 
@@ -263,7 +262,7 @@ export default function Add() {
                 />
               </View>
             )}
-
+            {/* TODO: agregar validaciones de los campos */}
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Título</Text>
               <TextInput
@@ -273,6 +272,9 @@ export default function Add() {
                 placeholder="Ingrese el título del libro"
                 placeholderTextColor={colors.placeholderText}
               />
+              {formik.errors.title && (
+                <Text style={{ color: "red" }}>{formik.errors.title}</Text>
+              )}
             </View>
 
             <View style={styles.inputContainer}>
@@ -284,6 +286,9 @@ export default function Add() {
                 placeholder="Ingrese los autores"
                 placeholderTextColor={colors.placeholderText}
               />
+              {formik.errors.author && (
+                <Text style={{ color: "red" }}>{formik.errors.author}</Text>
+              )}
             </View>
 
             <View style={styles.inputContainer}>
@@ -295,6 +300,9 @@ export default function Add() {
                 placeholder="Ingrese la URL de la imagen"
                 placeholderTextColor={colors.placeholderText}
               />
+              {formik.errors.image_url && (
+                <Text style={{ color: "red" }}>{formik.errors.image_url}</Text>
+              )}
             </View>
 
             <View style={styles.inputContainer}>
@@ -306,6 +314,9 @@ export default function Add() {
                 placeholder="Ingrese el ISBN"
                 placeholderTextColor={colors.placeholderText}
               />
+              {formik.errors.isbn && (
+                <Text style={{ color: "red" }}>{formik.errors.isbn}</Text>
+              )}
             </View>
 
             <View style={styles.inputContainer}>
@@ -317,6 +328,9 @@ export default function Add() {
                 placeholder="Ingrese el idioma"
                 placeholderTextColor={colors.placeholderText}
               />
+              {formik.errors.lenguaje && (
+                <Text style={{ color: "red" }}>{formik.errors.lenguaje}</Text>
+              )}
             </View>
 
             <View style={styles.inputContainer}>
@@ -330,6 +344,11 @@ export default function Add() {
                 placeholder="Ingrese la fecha de publicación"
                 placeholderTextColor={colors.placeholderText}
               />
+              {formik.errors.publication_year && (
+                <Text style={{ color: "red" }}>
+                  {formik.errors.publication_year}
+                </Text>
+              )}
             </View>
 
             <View style={styles.inputContainer}>
@@ -341,9 +360,10 @@ export default function Add() {
                 placeholder="Ingrese la editorial"
                 placeholderTextColor={colors.placeholderText}
               />
+              {formik.errors.publisher && (
+                <Text style={{ color: "red" }}>{formik.errors.publisher}</Text>
+              )}
             </View>
-
-            {error && <Text style={{ color: "red" }}>{error}</Text>}
 
             <TouchableOpacity
               style={styles.button}

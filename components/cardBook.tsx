@@ -1,3 +1,4 @@
+import { useDetailsStore } from "@/store/useDetailsStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
@@ -29,8 +30,11 @@ interface CardBookProps {
 
 const CardBook = ({ book }: CardBookProps) => {
   const router = useRouter();
+  const addBook = useDetailsStore((state) => state.addBook);
+
   const goToBooks = () => {
-    router.push("/books/books");
+    addBook(book);
+    router.push("/books/detail");
   };
 
   useEffect(() => {
@@ -64,8 +68,8 @@ const CardBook = ({ book }: CardBookProps) => {
 
 const styles = StyleSheet.create({
   card: {
-    width: 150,
-    height: 200,
+    width: 250,
+    height: 500,
     backgroundColor: "#fff",
     borderRadius: 10,
     margin: 10,
@@ -73,7 +77,8 @@ const styles = StyleSheet.create({
   },
   cover: {
     width: "100%",
-    height: 120,
+    height: 320,
+    objectFit: "cover",
   },
   info: {
     padding: 10,
