@@ -40,11 +40,12 @@ export default function Add() {
   const scannedData = useIsbnCodeStore((state) => state.isbnCode);
   const library = useLibraryStore((state) => state.library);
   const title = useTitleStore((state) => state.title);
+  const setTitle = useTitleStore((state) => state.setTitle);
 
   const formik = useFormik({
     initialValues: initialValues(),
     validationSchema: Yup.object(validationSchema()),
-    validateOnChange: false,
+    validateOnChange: true,
     onSubmit: (formData) => {
       setLoading(true);
       setError(null);
@@ -71,6 +72,7 @@ export default function Add() {
       const data = await response.json();
       console.log(data);
       router.replace("/(tabs)#index");
+      setTitle("");
       setLoading(false);
     } catch (error) {
       console.log(error);
@@ -191,7 +193,11 @@ export default function Add() {
 
   return (
     <SafeAreaView style={styles.mainContainer}>
-      <Link href={"/(tabs)#index"} style={{ padding: 10 }}>
+      <Link
+        href={"/(tabs)#index"}
+        style={{ padding: 10 }}
+        onPress={() => setTitle("")}
+      >
         <Ionicons name="arrow-back-outline" size={24} color="black" />
       </Link>
 
@@ -256,7 +262,9 @@ export default function Add() {
             {!!formik.values.image_url && (
               <View style={{ marginTop: 10, alignItems: "center" }}>
                 <Image
-                  source={{ uri: formik.values.image_url }}
+                  source={{
+                    uri: formik.values.image_url.replace("http://", "https://"),
+                  }}
                   style={{ width: 200, height: 300, margin: 10, marginBottom: 20 }}
                   resizeMode="cover"
                 />

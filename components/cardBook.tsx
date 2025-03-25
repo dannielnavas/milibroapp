@@ -22,6 +22,9 @@ export interface Book {
   createdAt: string;
   updatedAt: string;
   __v: number;
+  endDate: string;
+  rating: number;
+  startDate: string;
 }
 
 interface CardBookProps {
@@ -68,8 +71,8 @@ const CardBook = ({ book }: CardBookProps) => {
 
 const styles = StyleSheet.create({
   card: {
-    width: 250,
-    height: 500,
+    width: 180,
+    height: 250,
     backgroundColor: "#fff",
     borderRadius: 10,
     margin: 10,
@@ -77,7 +80,7 @@ const styles = StyleSheet.create({
   },
   cover: {
     width: "100%",
-    height: 320,
+    height: 180,
     objectFit: "cover",
   },
   info: {
