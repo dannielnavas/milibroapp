@@ -1,7 +1,7 @@
 "use client";
 
 import { AddBookModal } from "@/components/AddBookModal";
-import { BookGrid } from "@/components/BookGrid";
+import { AuthorsGrid } from "@/components/AuthorsGrid";
 import type { Book } from "@/components/cardBook";
 import { FloatingActionButton } from "@/components/FloatingActionButton";
 import { ManualAddModal } from "@/components/ManualAddModal";
@@ -26,6 +26,9 @@ export default function Index() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [books, setBooks] = useState<Book[]>([]);
+  const [authors, setAuthors] = useState<
+    { author: string; count: number; url?: string }[]
+  >([]);
   const userData = useUserStore((state) => state.user);
   const setTitle = useTitleStore((state) => state.setTitle);
   const title = useTitleStore((state) => state.title);
@@ -83,11 +86,35 @@ export default function Index() {
       const data: Book[] = await response.json();
       data.sort((a, b) => a.author.localeCompare(b.author));
       setBooks(data);
+      const authors = data.reduce((acc, book) => {
+        const author = acc.find((a) => a.author === book.author);
+        if (author) {
+          author.count++;
+        } else {
+          acc.push({ author: book.author, count: 1 });
+        }
+        return acc;
+      }, [] as { author: string; count: number }[]);
+      setCover(authors);
       setLoading(false);
     } catch (error) {
       setLoading(false);
     }
   };
+
+  const setCover = async (
+    authors: { author: string; count: number; url?: string }[]
+  ) => {
+    authors.forEach((author) => {
+      const bookData = books.find((a) => a.author === author.author);
+      author.url = bookData?.image_url;
+      setAuthors([...authors]);
+    });
+  };
+
+  useEffect(() => {
+    setCover(authors);
+  }, [books]);
 
   const openModal = () => {
     setIsVisible(true);
@@ -126,10 +153,18 @@ export default function Index() {
         </Text>
       </View>
 
-      <BookGrid
+      {/* <BookGrid
         books={books}
         onBookPress={(book) => {
           addBook(book);
+          router.push("/books/detail");
+        }}
+      /> */}
+
+      <AuthorsGrid
+        authors={authors}
+        onAuthorPress={(author) => {
+          setTitle(author);
           router.push("/books/detail");
         }}
       />
