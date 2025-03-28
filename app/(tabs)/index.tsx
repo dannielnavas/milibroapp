@@ -5,7 +5,8 @@ import { AuthorsGrid } from "@/components/AuthorsGrid";
 import type { Book } from "@/components/cardBook";
 import { FloatingActionButton } from "@/components/FloatingActionButton";
 import { ManualAddModal } from "@/components/ManualAddModal";
-import { useDetailsStore } from "@/store/useDetailsStore";
+import { useAuthorStore } from "@/store/useAuthor";
+import { useBooksStore } from "@/store/useBooks";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { useTitleStore } from "@/store/useTitleStore";
 import { useUserStore } from "@/store/useUserStore";
@@ -29,14 +30,31 @@ export default function Index() {
   const [authors, setAuthors] = useState<
     { author: string; count: number; url?: string }[]
   >([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
+  const slideAnim = useRef(new Animated.Value(300)).current;
+
   const userData = useUserStore((state) => state.user);
   const setTitle = useTitleStore((state) => state.setTitle);
   const title = useTitleStore((state) => state.title);
   const addLibrary = useLibraryStore((state) => state.addLibrary);
-  const addBook = useDetailsStore((state) => state.addBook);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  const slideAnim = useRef(new Animated.Value(300)).current;
+  const addAuthor = useAuthorStore((state) => state.addAuthor);
+  const addBooks = useBooksStore((state) => state.addBooks);
+  const removeBooks = useBooksStore((state) => state.removeBooks);
+
+  const databaseImages = [
+    "https://images.unsplash.com/photo-1514593214839-ce1849100055",
+    "https://images.unsplash.com/photo-1519682337058-a94d519337bc",
+    "https://plus.unsplash.com/premium_photo-1721762724233-1332468b252f",
+    "https://images.unsplash.com/photo-1546521343-4eb2c01aa44b",
+    "https://images.unsplash.com/photo-1615976909545-a2d402c7dac3",
+    "https://images.unsplash.com/photo-1598960087461-556c5a1f864a",
+    "https://images.unsplash.com/photo-1544716278-e513176f20b5",
+    "https://images.unsplash.com/photo-1542981784-71a7fea7ff18",
+    "https://images.unsplash.com/photo-1582659770841-cbf093685dd6",
+    "https://images.unsplash.com/photo-1575709527142-a93ed587bb83",
+  ];
 
   useEffect(() => {
     if (!userData) {
@@ -105,9 +123,9 @@ export default function Index() {
   const setCover = async (
     authors: { author: string; count: number; url?: string }[]
   ) => {
-    authors.forEach((author) => {
-      const bookData = books.find((a) => a.author === author.author);
-      author.url = bookData?.image_url;
+    authors.forEach(async (author) => {
+      author.url = databaseImages[Math.floor(Math.random() * databaseImages.length)];
+      authors.sort((a, b) => a.author.localeCompare(b.author));
       setAuthors([...authors]);
     });
   };
@@ -153,19 +171,13 @@ export default function Index() {
         </Text>
       </View>
 
-      {/* <BookGrid
-        books={books}
-        onBookPress={(book) => {
-          addBook(book);
-          router.push("/books/detail");
-        }}
-      /> */}
-
       <AuthorsGrid
         authors={authors}
         onAuthorPress={(author) => {
-          setTitle(author);
-          router.push("/books/detail");
+          addAuthor(author);
+          removeBooks();
+          addBooks(books.filter((book) => book.author === author));
+          router.push("/books/books");
         }}
       />
 

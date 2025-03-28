@@ -2,25 +2,18 @@
 
 import { BookInfo } from "@/components/BookInfo";
 import type { Book } from "@/components/cardBook";
-import { DateInput } from "@/components/DateInput";
 import { Header } from "@/components/Header";
-import { RatingInput } from "@/components/RatingInput";
-import { SubmitButton } from "@/components/SubmitButton";
 import { useDetailsStore } from "@/store/useDetailsStore";
-import { AntDesign } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useFormik } from "formik";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
   Alert,
   Image,
   SafeAreaView,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 import * as Yup from "yup";
@@ -28,8 +21,6 @@ import * as Yup from "yup";
 export default function Detail() {
   const book: Book = useDetailsStore((state) => state.book);
   const router = useRouter();
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
 
   const formik = useFormik({
     initialValues: {
@@ -47,131 +38,6 @@ export default function Detail() {
     formik.setFieldValue("startDate", new Date(book.startDate || new Date()));
     formik.setFieldValue("endDate", new Date(book.endDate || new Date()));
   }, [book, formik.setFieldValue]); // Added formik.setFieldValue to dependencies
-
-  async function editBook(id: string) {
-    return (
-      <ScrollView style={styles.editForm}>
-        <Text style={styles.formLabel}>Título</Text>
-        <TextInput
-          style={styles.input}
-          value={formData.title}
-          onChangeText={(text) => setFormData({ ...formData, title: text })}
-          placeholder="Título del libro"
-        />
-
-        <Text style={styles.formLabel}>Autor</Text>
-        <TextInput
-          style={styles.input}
-          value={formData.author}
-          onChangeText={(text) => setFormData({ ...formData, author: text })}
-          placeholder="Autor del libro"
-        />
-
-        <Text style={styles.formLabel}>ISBN</Text>
-        <TextInput
-          style={styles.input}
-          value={formData.isbn}
-          onChangeText={(text) => setFormData({ ...formData, isbn: text })}
-          placeholder="ISBN"
-          keyboardType="numeric"
-        />
-
-        <Text style={styles.formLabel}>Género</Text>
-        <TextInput
-          style={styles.input}
-          value={formData.genre}
-          onChangeText={(text) => setFormData({ ...formData, genre: text })}
-          placeholder="Género"
-        />
-
-        <Text style={styles.formLabel}>Estado</Text>
-        <View style={styles.statusButtons}>
-          {(["reading", "completed", "wishlist"] as BookStatus[]).map((status) => (
-            <TouchableOpacity
-              key={status}
-              style={[
-                styles.statusButton,
-                formData.status === status && styles.statusButtonActive,
-              ]}
-              onPress={() => setFormData({ ...formData, status })}
-            >
-              <Text
-                style={[
-                  styles.statusButtonText,
-                  formData.status === status && styles.statusButtonTextActive,
-                ]}
-              >
-                {status === "reading"
-                  ? "Leyendo"
-                  : status === "completed"
-                  ? "Leído"
-                  : "Deseado"}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {formData.status === "completed" && (
-          <>
-            <Text style={styles.formLabel}>Calificación</Text>
-            {renderStars(tempRating, true)}
-          </>
-        )}
-
-        <Text style={styles.formLabel}>Páginas totales</Text>
-        <TextInput
-          style={styles.input}
-          value={formData.totalPages?.toString()}
-          onChangeText={(text) =>
-            setFormData({ ...formData, totalPages: parseInt(text) || 0 })
-          }
-          placeholder="Número de páginas"
-          keyboardType="numeric"
-        />
-
-        {formData.status === "reading" && (
-          <>
-            <Text style={styles.formLabel}>Página actual</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.currentPage?.toString()}
-              onChangeText={(text) =>
-                setFormData({ ...formData, currentPage: parseInt(text) || 0 })
-              }
-              placeholder="Página actual"
-              keyboardType="numeric"
-            />
-          </>
-        )}
-
-        <Text style={styles.formLabel}>Notas personales</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          value={formData.notes}
-          onChangeText={(text) => setFormData({ ...formData, notes: text })}
-          placeholder="Escribe tus notas aquí"
-          multiline
-          numberOfLines={4}
-        />
-
-        <TouchableOpacity
-          style={styles.favoriteToggle}
-          onPress={() =>
-            setFormData({ ...formData, isFavorite: !formData.isFavorite })
-          }
-        >
-          <AntDesign
-            name={formData.isFavorite ? "heart" : "hearto"}
-            size={24}
-            color={formData.isFavorite ? "#ff4081" : "#666"}
-          />
-          <Text style={styles.favoriteToggleText}>
-            {formData.isFavorite ? "Quitar de favoritos" : "Marcar como favorito"}
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-    );
-  }
 
   async function removeBook(id: string) {
     try {
@@ -238,7 +104,9 @@ export default function Detail() {
       <Header
         title={book.title}
         onDelete={() => removeBook(book._id)}
-        onEdit={() => editBook(book._id)}
+        onEdit={() => {
+          router.push("/books/edit");
+        }}
       />
 
       <ScrollView style={styles.contentContainer}>
@@ -252,7 +120,7 @@ export default function Detail() {
 
         <BookInfo book={book} />
 
-        <View style={styles.formContainer}>
+        {/* <View style={styles.formContainer}>
           <RatingInput
             rating={formik.values.rating}
             onRatingChange={(rating) => formik.setFieldValue("rating", rating)}
@@ -281,7 +149,7 @@ export default function Detail() {
           />
 
           <SubmitButton onPress={() => formik.handleSubmit()} />
-        </View>
+        </View> */}
       </ScrollView>
     </SafeAreaView>
   );

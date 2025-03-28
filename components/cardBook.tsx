@@ -25,6 +25,13 @@ export interface Book {
   endDate: string;
   rating: number;
   startDate: string;
+
+  genre?: string;
+  status?: string;
+  totalPages?: number;
+  currentPage?: number;
+  notes?: string;
+  isFavorite?: string;
 }
 
 interface CardBookProps {
