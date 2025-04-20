@@ -52,7 +52,7 @@ export default function Books() {
 
   useEffect(() => {
     setLoading(true);
-    setTitle("Mi Biblioteca");
+    setTitle("");
     setTimeout(() => {
       setLoading(false);
     }, 1000);
