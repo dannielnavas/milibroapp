@@ -22,18 +22,16 @@ import {
 import * as Yup from "yup";
 
 export default function App() {
-  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const addUserData = useUserStore((state) => state.addUser);
-  const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
+
   const formik = useFormik({
     initialValues: initialValues(),
     validationSchema: Yup.object(validationSchema()),
     validateOnChange: false,
     onSubmit: (formData) => {
       setLoading(true);
-      setError(null);
       const { email, password } = formData;
       fetchLogin({ email: email.toLowerCase(), password });
     },
@@ -57,25 +55,33 @@ export default function App() {
           body: JSON.stringify({ email, password }),
         }
       );
+
+      if (!response.ok) {
+        throw new Error("Credenciales inválidas");
+      }
+
       const data: UserModel = await response.json();
       await SecureStore.setItemAsync("token", data.access_token);
       addUserData(data);
-      SecureStore.setItemAsync("dataUser", JSON.stringify({ email, password }));
+      await SecureStore.setItemAsync(
+        "dataUser",
+        JSON.stringify({ email, password })
+      );
       ToastAndroid.show("Inicio de sesión correcto", ToastAndroid.SHORT);
       setLoading(false);
       router.replace("/(tabs)#index");
     } catch (error) {
       setLoading(false);
       console.log(error);
+      ToastAndroid.show(
+        "Error al iniciar sesión. Por favor, verifica tus credenciales.",
+        ToastAndroid.LONG
+      );
     }
   };
 
   useEffect(() => {
-    SecureStore.getItemAsync("token").then((token) => {
-      if (token) {
-        router.replace("/(tabs)#index");
-      }
-    });
+    checkBiometricAvailability();
   }, []);
 
   const checkBiometricAvailability = async () => {
@@ -126,7 +132,6 @@ export default function App() {
       const loginBiometric = await SecureStore.getItemAsync("dataUser");
 
       if (loginBiometric) {
-        setIsBiometricAvailable(true);
         handleAuthentication();
       }
     };
