@@ -71,10 +71,7 @@ export default function Books() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         {/* <Text style={styles.headerTitle}>Mi Biblioteca</Text> */}
-        <Text style={styles.libraryStats}>
-          {" "}
-          Total de libros {books.length} libros
-        </Text>
+        <Text style={styles.libraryStats}>Total de libros: {books.length}</Text>
       </View>
 
       <BookGrid

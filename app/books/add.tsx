@@ -32,9 +32,19 @@ export const colors = {
   placeholderText: "#999999",
 };
 
+interface FormValues {
+  title: string;
+  author: string;
+  isbn: string;
+  publication_year: number;
+  publisher: string;
+  image_url: string;
+  wishlist: boolean;
+  lenguaje: string;
+}
+
 export default function Add() {
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [allResult, setAllResult] = useState<GoogleBooks[]>([]);
   const router = useRouter();
   const scannedData = useIsbnCodeStore((state) => state.isbnCode);
@@ -42,14 +52,45 @@ export default function Add() {
   const title = useTitleStore((state) => state.title);
   const setTitle = useTitleStore((state) => state.setTitle);
 
-  const formik = useFormik({
+  const formik = useFormik<FormValues>({
     initialValues: initialValues(),
-    validationSchema: Yup.object(validationSchema()),
+    validationSchema: Yup.object().shape({
+      title: Yup.string()
+        .required("El título es obligatorio")
+        .min(2, "El título debe tener al menos 2 caracteres"),
+      author: Yup.string()
+        .required("El autor es obligatorio")
+        .min(2, "El autor debe tener al menos 2 caracteres"),
+      isbn: Yup.string()
+        .required("El ISBN es obligatorio")
+        .matches(/^[0-9-]{10,13}$/, "El ISBN debe tener entre 10 y 13 dígitos"),
+      publication_year: Yup.number()
+        .required("El año de publicación es obligatorio")
+        .min(1000, "Año inválido")
+        .max(new Date().getFullYear(), "El año no puede ser futuro"),
+      publisher: Yup.string()
+        .required("La editorial es obligatoria")
+        .min(2, "La editorial debe tener al menos 2 caracteres"),
+      image_url: Yup.string()
+        .required("La URL de la imagen es obligatoria")
+        .url("Debe ser una URL válida"),
+      lenguaje: Yup.string()
+        .required("El idioma es obligatorio")
+        .min(2, "El idioma debe tener al menos 2 caracteres"),
+      wishlist: Yup.boolean(),
+    }),
     validateOnChange: true,
-    onSubmit: (formData) => {
-      setLoading(true);
-      setError(null);
-      addBook(formData);
+    onSubmit: async (values) => {
+      try {
+        setLoading(true);
+        await addBook(values);
+        router.back();
+      } catch (error) {
+        console.error(error);
+        Alert.alert("Error", "No se pudo guardar el libro");
+      } finally {
+        setLoading(false);
+      }
     },
   });
 
@@ -191,6 +232,89 @@ export default function Add() {
     }
   };
 
+  const validateFields = () => {
+    if (!formik.values.title || !formik.values.author || !formik.values.isbn) {
+      Alert.alert(
+        "Error",
+        "Por favor completa los campos obligatorios (título, autor e ISBN)"
+      );
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateFields()) return;
+
+    setLoading(true);
+    try {
+      await addBook(formik.values);
+      router.back();
+    } catch (err) {
+      Alert.alert("Error", "No se pudo guardar el libro");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderForm = () => (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={styles.title}>Agregar Nuevo Libro</Text>
+
+      {Boolean(formik.values.image_url) && (
+        <View style={styles.imageContainer}>
+          <Image
+            source={{
+              uri: formik.values.image_url.replace("http://", "https://"),
+            }}
+            style={styles.bookCover}
+            resizeMode="cover"
+          />
+        </View>
+      )}
+
+      {(Object.keys(formik.initialValues) as Array<keyof FormValues>).map(
+        (fieldName) => (
+          <View key={fieldName} style={styles.inputContainer}>
+            <Text style={styles.label}>
+              {fieldName.charAt(0).toUpperCase() +
+                fieldName.slice(1).replace("_", " ")}
+            </Text>
+            <TextInput
+              style={[
+                styles.input,
+                formik.errors[fieldName] &&
+                  formik.touched[fieldName] && {
+                    borderColor: "#dc3545",
+                  },
+              ]}
+              value={String(formik.values[fieldName])}
+              onChangeText={(text) => formik.setFieldValue(fieldName, text)}
+              onBlur={() => formik.setFieldTouched(fieldName)}
+              placeholder={`Ingrese ${fieldName.replace("_", " ")}`}
+              keyboardType={fieldName === "publication_year" ? "numeric" : "default"}
+            />
+            {formik.errors[fieldName] && formik.touched[fieldName] && (
+              <Text style={styles.errorText}>{formik.errors[fieldName]}</Text>
+            )}
+          </View>
+        )
+      )}
+
+      <TouchableOpacity
+        style={[styles.button, !formik.isValid && { backgroundColor: "#cccccc" }]}
+        onPress={() => formik.handleSubmit()}
+        disabled={!formik.isValid}
+      >
+        <Text style={styles.buttonText}>Guardar Libro</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+
   return (
     <SafeAreaView style={styles.mainContainer}>
       <Link
@@ -221,7 +345,7 @@ export default function Add() {
                 keyExtractor={(_, index) => index.toString()}
                 renderItem={({ item }) => (
                   <Pressable
-                    style={styles.bookCard}
+                    style={styles.bookCardItem}
                     onPress={() => {
                       setAllResult([]);
                       validateEmptyData({
@@ -251,136 +375,7 @@ export default function Add() {
           </ScrollView>
         )}
 
-        {!loading && allResult?.length === 0 && (
-          <ScrollView
-            style={styles.container}
-            contentContainerStyle={styles.contentContainer}
-            showsVerticalScrollIndicator={false}
-          >
-            <Text style={styles.title}>Agregar Nuevo Libro</Text>
-
-            {!!formik.values.image_url && (
-              <View style={{ marginTop: 10, alignItems: "center" }}>
-                <Image
-                  source={{
-                    uri: formik.values.image_url.replace("http://", "https://"),
-                  }}
-                  style={{ width: 200, height: 300, margin: 10, marginBottom: 20 }}
-                  resizeMode="cover"
-                />
-              </View>
-            )}
-            {/* TODO: agregar validaciones de los campos */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Título</Text>
-              <TextInput
-                style={styles.input}
-                value={formik.values.title}
-                onChangeText={(text) => formik.setFieldValue("title", text)}
-                placeholder="Ingrese el título del libro"
-                placeholderTextColor={colors.placeholderText}
-              />
-              {formik.errors.title && (
-                <Text style={{ color: "red" }}>{formik.errors.title}</Text>
-              )}
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Autores (separados por coma)</Text>
-              <TextInput
-                style={styles.input}
-                value={formik.values.author}
-                onChangeText={(text) => formik.setFieldValue("author", text)}
-                placeholder="Ingrese los autores"
-                placeholderTextColor={colors.placeholderText}
-              />
-              {formik.errors.author && (
-                <Text style={{ color: "red" }}>{formik.errors.author}</Text>
-              )}
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>URL de la imagen</Text>
-              <TextInput
-                style={styles.input}
-                value={formik.values.image_url}
-                onChangeText={(text) => formik.setFieldValue("image_url", text)}
-                placeholder="Ingrese la URL de la imagen"
-                placeholderTextColor={colors.placeholderText}
-              />
-              {formik.errors.image_url && (
-                <Text style={{ color: "red" }}>{formik.errors.image_url}</Text>
-              )}
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>ISBN</Text>
-              <TextInput
-                style={styles.input}
-                value={formik.values.isbn}
-                onChangeText={(text) => formik.setFieldValue("isbn", text)}
-                placeholder="Ingrese el ISBN"
-                placeholderTextColor={colors.placeholderText}
-              />
-              {formik.errors.isbn && (
-                <Text style={{ color: "red" }}>{formik.errors.isbn}</Text>
-              )}
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Idioma</Text>
-              <TextInput
-                style={styles.input}
-                value={formik.values.lenguaje}
-                onChangeText={(text) => formik.setFieldValue("lenguaje", text)}
-                placeholder="Ingrese el idioma"
-                placeholderTextColor={colors.placeholderText}
-              />
-              {formik.errors.lenguaje && (
-                <Text style={{ color: "red" }}>{formik.errors.lenguaje}</Text>
-              )}
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Fecha de publicación</Text>
-              <TextInput
-                style={styles.input}
-                value={String(formik.values.publication_year)}
-                onChangeText={(text) =>
-                  formik.setFieldValue("publication_year", text)
-                }
-                placeholder="Ingrese la fecha de publicación"
-                placeholderTextColor={colors.placeholderText}
-              />
-              {formik.errors.publication_year && (
-                <Text style={{ color: "red" }}>
-                  {formik.errors.publication_year}
-                </Text>
-              )}
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Editorial</Text>
-              <TextInput
-                style={styles.input}
-                value={formik.values.publisher}
-                onChangeText={(text) => formik.setFieldValue("publisher", text)}
-                placeholder="Ingrese la editorial"
-                placeholderTextColor={colors.placeholderText}
-              />
-              {formik.errors.publisher && (
-                <Text style={{ color: "red" }}>{formik.errors.publisher}</Text>
-              )}
-            </View>
-
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => formik.handleSubmit()}
-            >
-              <Text style={styles.buttonText}>Guardar Libro</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        )}
+        {!loading && allResult?.length === 0 && renderForm()}
       </View>
     </SafeAreaView>
   );
@@ -389,7 +384,7 @@ export default function Add() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: "#ffffff",
   },
   container: {
     flex: 1,
@@ -401,46 +396,27 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: colors.text,
+    color: "#333333",
     marginBottom: 20,
     textAlign: "center",
   },
   inputContainer: {
-    marginBottom: 15,
+    marginBottom: 20,
   },
   label: {
     fontSize: 16,
-    color: colors.text,
-    marginBottom: 5,
+    color: "#333333",
+    marginBottom: 8,
+    fontWeight: "600",
   },
   input: {
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 5,
-    padding: 10,
-    fontSize: 16,
-    color: colors.text,
-  },
-  button: {
-    backgroundColor: colors.primary,
-    padding: 15,
-    borderRadius: 5,
-    alignItems: "center",
-    marginTop: 20,
-  },
-  buttonText: {
-    color: colors.buttonText,
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  bookCard: {
-    width: 160, // Ancho fijo en lugar de porcentaje
-    marginBottom: 32,
-    marginLeft: 20,
-  },
-  imageContainer: {
-    backgroundColor: "#fff",
+    borderColor: "#e1e1e1",
     borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: "#333333",
+    backgroundColor: "#ffffff",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -448,20 +424,52 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 1,
-    elevation: 2,
-    overflow: "hidden",
-    aspectRatio: 0.7, // Mantiene una proporción consistente
+    elevation: 1,
+  },
+  errorText: {
+    color: "#dc3545",
+    fontSize: 12,
+    marginTop: 4,
+  },
+  button: {
+    backgroundColor: "#05453e",
+    padding: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 24,
+  },
+  buttonText: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  imageContainer: {
+    alignItems: "center",
+    marginVertical: 20,
   },
   bookCover: {
-    width: "100%", // Ocupa todo el ancho del contenedor
-    height: "100%", // Ocupa todo el alto del contenedor
-    objectFit: "cover",
+    width: 160,
+    height: 280,
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   bookGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-around",
-    gap: 20,
+    gap: 16,
+  },
+  bookCardItem: {
+    width: 190,
+    marginBottom: 32,
+    marginLeft: 20,
   },
 });
 
@@ -475,17 +483,5 @@ const initialValues = () => {
     image_url: "",
     wishlist: false,
     lenguaje: "",
-  };
-};
-
-const validationSchema = () => {
-  return {
-    title: Yup.string().required("El título es requerido"),
-    author: Yup.string().required("El autor es requerido"),
-    isbn: Yup.string().required("El ISBN es requerido"),
-    publication_year: Yup.number().required("El año de publicación es requerido"),
-    publisher: Yup.string().required("La editorial es requerida"),
-    image_url: Yup.string().required("La URL de la imagen es requerida"),
-    lenguaje: Yup.string().required("El idioma es requerido"),
   };
 };

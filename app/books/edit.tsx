@@ -19,6 +19,20 @@ import {
 } from "react-native";
 import * as Yup from "yup";
 
+interface FormValues {
+  title: string;
+  author: string;
+  genre: string;
+  status: string;
+  totalPages: number;
+  currentPage?: number;
+  notes?: string;
+  isFavorite: boolean;
+  rating: number;
+  startDate: Date;
+  endDate: Date;
+}
+
 export default function EditBook() {
   const router = useRouter();
   const [showStartPicker, setShowStartPicker] = useState(false);
@@ -27,35 +41,79 @@ export default function EditBook() {
   const book: Book = useDetailsStore((state) => state.book);
   console.log("book", book);
 
-  const formData = useFormik({
+  const formData = useFormik<FormValues>({
     initialValues: initialValues(),
-    validationSchema: Yup.object(validationSchemaEdit()),
+    validationSchema: Yup.object().shape({
+      title: Yup.string()
+        .required("El título es obligatorio")
+        .min(2, "El título debe tener al menos 2 caracteres"),
+      author: Yup.string()
+        .required("El autor es obligatorio")
+        .min(2, "El autor debe tener al menos 2 caracteres"),
+      genre: Yup.string()
+        .required("El género es obligatorio")
+        .min(2, "El género debe tener al menos 2 caracteres"),
+      status: Yup.string()
+        .required("El estado es obligatorio")
+        .oneOf(["reading", "completed", "wishlist"], "Estado no válido"),
+      totalPages: Yup.number()
+        .required("El número de páginas es obligatorio")
+        .min(1, "Debe tener al menos 1 página"),
+      currentPage: Yup.number().when("status", {
+        is: "reading",
+        then: (schema) =>
+          schema
+            .required("La página actual es obligatoria")
+            .min(1, "Debe ser al menos 1")
+            .max(Yup.ref("totalPages"), "No puede ser mayor que el total"),
+      }),
+      notes: Yup.string(),
+      isFavorite: Yup.boolean(),
+      rating: Yup.number()
+        .min(0, "La calificación mínima es 0")
+        .max(5, "La calificación máxima es 5"),
+      startDate: Yup.date().required("La fecha de inicio es obligatoria"),
+      endDate: Yup.date().when("status", {
+        is: "completed",
+        then: (schema) =>
+          schema
+            .required("La fecha de fin es obligatoria")
+            .min(
+              Yup.ref("startDate"),
+              "La fecha de fin debe ser posterior a la de inicio"
+            ),
+      }),
+    }),
     validateOnChange: false,
     onSubmit: async (values) => {
-      console.log("values", values);
-      const token = await SecureStore.getItemAsync("token");
-      const url = `https://milibro-danniel-dev.vercel.app/books/${book._id}`;
-      const response = await fetch(url, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          ...values,
-          startDate: values.startDate.toISOString(),
-          endDate: values.endDate.toISOString(),
-        }),
-      });
-      console.log("response", response);
-      if (response.status === 200) {
-        Alert.alert("Libro editado", "El libro ha sido editado", [
-          {
-            text: "Aceptar",
-            onPress: () => router.push("/(tabs)#index"),
+      try {
+        const token = await SecureStore.getItemAsync("token");
+        const url = `https://milibro-danniel-dev.vercel.app/books/${book._id}`;
+        const response = await fetch(url, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
-        ]);
-      } else {
+          body: JSON.stringify({
+            ...values,
+            startDate: values.startDate.toISOString(),
+            endDate: values.endDate.toISOString(),
+          }),
+        });
+
+        if (response.status === 200) {
+          Alert.alert("Libro editado", "El libro ha sido editado", [
+            {
+              text: "Aceptar",
+              onPress: () => router.push("/(tabs)#index"),
+            },
+          ]);
+        } else {
+          throw new Error("Error al editar el libro");
+        }
+      } catch (error) {
+        console.error(error);
         Alert.alert("Error", "No se pudo editar el libro");
       }
     },
@@ -68,19 +126,19 @@ export default function EditBook() {
   };
 
   useEffect(() => {
-    formData.setFieldValue("title", book.title || "");
-    formData.setFieldValue("author", book.author || "");
-    formData.setFieldValue("isbn", book.isbn || "");
-    formData.setFieldValue("genre", book.genre || "");
-    formData.setFieldValue("status", book.status || "");
-    formData.setFieldValue("totalPages", book.totalPages || "");
-    formData.setFieldValue("currentPage", book.currentPage || "");
-    formData.setFieldValue("notes", book.notes || "");
-    formData.setFieldValue("isFavorite", book.isFavorite || false);
-    formData.setFieldValue("rating", book.rating || 0);
-    formData.setFieldValue("startDate", new Date(book.startDate || new Date()));
-    formData.setFieldValue("endDate", new Date(book.endDate || new Date()));
-  }, [book, formData.setFieldValue]); // Added formik.setFieldValue to dependencies
+    formData.setFieldValue("title", book.title ?? "");
+    formData.setFieldValue("author", book.author ?? "");
+    formData.setFieldValue("isbn", book.isbn ?? "");
+    formData.setFieldValue("genre", book.genre ?? "");
+    formData.setFieldValue("status", book.status ?? "");
+    formData.setFieldValue("totalPages", book.totalPages ?? 0);
+    formData.setFieldValue("currentPage", book.currentPage ?? 0);
+    formData.setFieldValue("notes", book.notes ?? "");
+    formData.setFieldValue("isFavorite", book.isFavorite ?? false);
+    formData.setFieldValue("rating", book.rating ?? 0);
+    formData.setFieldValue("startDate", new Date(book.startDate ?? new Date()));
+    formData.setFieldValue("endDate", new Date(book.endDate ?? new Date()));
+  }, [book, formData.setFieldValue]);
 
   return (
     <ScrollView style={styles.editForm}>
@@ -213,82 +271,85 @@ export default function EditBook() {
 }
 
 const styles = StyleSheet.create({
+  editForm: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    padding: 16,
+  },
   formLabel: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
+    color: "#333333",
     marginBottom: 8,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  contentContainer: {
-    padding: 16,
-  },
-  imageContainer: {
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  image: {
-    width: 200,
-    height: 300,
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  formContainer: {
-    marginTop: 24,
-    gap: 16,
-  },
-  editForm: {
-    padding: 16,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 4,
-    padding: 8,
+    borderColor: "#e1e1e1",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: "#333333",
+    backgroundColor: "#ffffff",
     marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 1,
+  },
+  textArea: {
+    height: 120,
+    textAlignVertical: "top",
   },
   statusButtons: {
     flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 16,
+    justifyContent: "space-between",
+    marginBottom: 24,
   },
   statusButton: {
-    padding: 8,
-    borderRadius: 4,
-    marginHorizontal: 8,
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    marginHorizontal: 4,
+    backgroundColor: "#f8f9fa",
+    borderWidth: 1,
+    borderColor: "#e1e1e1",
   },
   statusButtonActive: {
-    backgroundColor: "#ff4081",
+    backgroundColor: "#05453e",
+    borderColor: "#05453e",
   },
   statusButtonText: {
-    color: "#666",
+    textAlign: "center",
+    fontSize: 14,
+    color: "#666666",
   },
   statusButtonTextActive: {
-    color: "#fff",
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: "top",
-  },
-  favoriteToggleText: {
-    color: "#666",
+    color: "#ffffff",
+    fontWeight: "600",
   },
   favoriteToggle: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 16,
-    marginBottom: 36,
-    paddingBottom: 16,
+    padding: 12,
+    marginVertical: 16,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 8,
+  },
+  favoriteToggleText: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: "#333333",
+  },
+  errorText: {
+    color: "#dc3545",
+    fontSize: 12,
+    marginTop: -12,
+    marginBottom: 16,
   },
 });
 
@@ -299,29 +360,12 @@ const initialValues = () => {
     isbn: "",
     genre: "",
     status: "",
-    totalPages: "",
-    currentPage: "",
+    totalPages: 0,
+    currentPage: 0,
     notes: "",
     isFavorite: false,
     startDate: new Date(),
     endDate: new Date(),
     rating: 0,
-  };
-};
-
-const validationSchemaEdit = () => {
-  return {
-    title: Yup.string(),
-    author: Yup.string(),
-    isbn: Yup.string(),
-    genre: Yup.string(),
-    status: Yup.string(),
-    totalPages: Yup.string(),
-    currentPage: Yup.string(),
-    notes: Yup.string(),
-    isFavorite: Yup.boolean(),
-    startDate: Yup.date(),
-    endDate: Yup.date(),
-    rating: Yup.number(),
   };
 };
