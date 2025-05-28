@@ -1,22 +1,25 @@
 "use client";
 
 import { AddBookModal } from "@/components/AddBookModal";
-import { AuthorsGrid } from "@/components/AuthorsGrid";
 import type { Book } from "@/components/cardBook";
 import { FloatingActionButton } from "@/components/FloatingActionButton";
 import { ManualAddModal } from "@/components/ManualAddModal";
-import { useAuthorStore } from "@/store/useAuthor";
-import { useBooksStore } from "@/store/useBooks";
+import { useDetailsStore } from "@/store/useDetailsStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { useTitleStore } from "@/store/useTitleStore";
 import { useUserStore } from "@/store/useUserStore";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Animated,
+  Dimensions,
   Easing,
+  Image,
+  Pressable,
+  ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
@@ -27,11 +30,9 @@ export default function Index() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [books, setBooks] = useState<Book[]>([]);
-  const [authors, setAuthors] = useState<
-    { author: string; count: number; url?: string }[]
-  >([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const addBook = useDetailsStore((state) => state.addBook);
 
   const slideAnim = useRef(new Animated.Value(300)).current;
 
@@ -39,22 +40,6 @@ export default function Index() {
   const setTitle = useTitleStore((state) => state.setTitle);
   const title = useTitleStore((state) => state.title);
   const addLibrary = useLibraryStore((state) => state.addLibrary);
-  const addAuthor = useAuthorStore((state) => state.addAuthor);
-  const addBooks = useBooksStore((state) => state.addBooks);
-  const removeBooks = useBooksStore((state) => state.removeBooks);
-
-  const databaseImages = [
-    "https://images.unsplash.com/photo-1514593214839-ce1849100055",
-    "https://images.unsplash.com/photo-1519682337058-a94d519337bc",
-    "https://plus.unsplash.com/premium_photo-1721762724233-1332468b252f",
-    "https://images.unsplash.com/photo-1546521343-4eb2c01aa44b",
-    "https://images.unsplash.com/photo-1615976909545-a2d402c7dac3",
-    "https://images.unsplash.com/photo-1598960087461-556c5a1f864a",
-    "https://images.unsplash.com/photo-1544716278-e513176f20b5",
-    "https://images.unsplash.com/photo-1542981784-71a7fea7ff18",
-    "https://images.unsplash.com/photo-1582659770841-cbf093685dd6",
-    "https://images.unsplash.com/photo-1575709527142-a93ed587bb83",
-  ];
 
   useEffect(() => {
     if (!userData) {
@@ -113,25 +98,14 @@ export default function Index() {
         }
         return acc;
       }, [] as { author: string; count: number }[]);
-      setCover(authors);
       setLoading(false);
     } catch (error) {
       setLoading(false);
     }
   };
 
-  const setCover = async (
-    authors: { author: string; count: number; url?: string }[]
-  ) => {
-    authors.forEach(async (author) => {
-      author.url = databaseImages[Math.floor(Math.random() * databaseImages.length)];
-      authors.sort((a, b) => a.author.localeCompare(b.author));
-      setAuthors([...authors]);
-    });
-  };
-
   useEffect(() => {
-    setCover(authors);
+    console.log(books);
   }, [books]);
 
   const openModal = () => {
@@ -152,35 +126,102 @@ export default function Index() {
     }).start(() => setIsVisible(false));
   };
 
-  if (loading) {
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "BOOK":
+        return "#F59E0B";
+      case "PODCAST":
+        return "#8B5CF6";
+      case "SUMMARY":
+        return "#06B6D4";
+      default:
+        return "#6B7280";
+    }
+  };
+
+  const renderBookItem = (book: Book, index: number) => {
+    const isLarge = index === 1 || index === 2;
+    const itemWidth = (Dimensions.get("window").width - 60) / 3;
+    //isLarge
+    // ? (Dimensions.get("window").width - 48) / 2
+    // : (Dimensions.get("window").width - 60) / 3;
+
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2ce" />
-        <Text style={styles.loadingText}>Cargando...</Text>
-      </View>
+      <Pressable
+        key={book._id}
+        onPress={() => {
+          addBook(book);
+          router.push("/books/detail");
+        }}
+      >
+        <View key={book._id} style={[styles.bookItem, { width: itemWidth }]}>
+          <View style={styles.bookImageContainer}>
+            <Image source={{ uri: book.image_url }} style={styles.bookImage} />
+            {/*<TouchableOpacity style={styles.favoriteButton}>
+            <Ionicons
+              name={book.isFavorite ? "heart" : "heart-outline"}
+              size={20}
+              color={book.isFavorite ? "#EF4444" : "#6B7280"}
+            />
+          </TouchableOpacity>*/}
+          </View>
+          <View style={styles.bookInfo}>
+            <Text style={[styles.bookType, { color: getTypeColor("BOOK") }]}>
+              {book.author}
+            </Text>
+            <Text style={styles.bookTitle} numberOfLines={2}>
+              {book.title}
+            </Text>
+          </View>
+        </View>
+      </Pressable>
     );
-  }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        {/* <Text style={styles.headerTitle}>Mi Biblioteca</Text> */}
-        <Text style={styles.libraryStats}>
-          {" "}
-          Total de libros {books.length} libros
-        </Text>
-      </View>
+      <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
 
-      <AuthorsGrid
-        authors={authors}
-        onAuthorPress={(author) => {
-          addAuthor(author);
-          removeBooks();
-          addBooks(books.filter((book) => book.author === author));
-          router.push("/books/books");
-        }}
-      />
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Featured Section */}
+        <View style={styles.featuredSection}>
+          <View style={styles.featuredContent}>
+            <View style={styles.featuredText}>
+              <View style={styles.featuredHeader}>
+                <View style={styles.heartIcon}>
+                  <Ionicons name="heart" size={16} color="#FFFFFF" />
+                </View>
+                <Text style={styles.featuredTitle}>Top-20 detectives</Text>
+              </View>
+              <Text style={styles.featuredDescription}>
+                Let's pull back the curtain on what books are currently on the minds
+                and tongues of this community
+              </Text>
+            </View>
+            <Image
+              source={{ uri: "https://picsum.photos/120/160?random=featured" }}
+              style={styles.featuredImage}
+            />
+          </View>
+        </View>
 
+        {/* Filter Buttons */}
+        {/* <View style={styles.filterContainer}>
+          <TouchableOpacity style={styles.filterButton}>
+            <Text style={styles.filterText}>All languages</Text>
+            <Ionicons name="chevron-down" size={16} color="#6B7280" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.filterButton}>
+            <Text style={styles.filterText}>Book, summary</Text>
+            <Ionicons name="chevron-down" size={16} color="#6B7280" />
+          </TouchableOpacity>
+        </View> */}
+
+        {/* Books Grid */}
+        <View style={styles.booksGrid}>
+          {books.map((book, index) => renderBookItem(book, index))}
+        </View>
+      </ScrollView>
       <FloatingActionButton onPress={openModal} />
 
       <AddBookModal
@@ -213,36 +254,164 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f8f9fa",
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#333",
+    backgroundColor: "#F9FAFB",
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#F9FAFB",
+  },
+  backButton: {
+    padding: 4,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: "600",
-    color: "#333",
+    color: "#111827",
+    marginLeft: 12,
   },
-  libraryStats: {
+  headerSpacer: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  featuredSection: {
+    marginBottom: 20,
+  },
+  featuredContent: {
+    backgroundColor: "#FDE68A",
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  featuredText: {
+    flex: 1,
+    marginRight: 16,
+  },
+  featuredHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  heartIcon: {
+    backgroundColor: "#EF4444",
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  featuredTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  featuredDescription: {
     fontSize: 14,
-    color: "#666",
+    color: "#6B7280",
+    lineHeight: 20,
+  },
+  featuredImage: {
+    width: 80,
+    height: 120,
+    borderRadius: 8,
+  },
+  filterContainer: {
+    flexDirection: "row",
+    marginBottom: 20,
+    gap: 12,
+  },
+  filterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  filterText: {
+    fontSize: 14,
+    color: "#374151",
+    marginRight: 4,
+  },
+  booksGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingBottom: 20,
+  },
+  bookItem: {
+    marginBottom: 16,
+  },
+  bookImageContainer: {
+    position: "relative",
+    marginBottom: 8,
+  },
+  bookImage: {
+    width: "100%",
+    height: 220,
+    borderRadius: 8,
+    backgroundColor: "#E5E7EB",
+  },
+  favoriteButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  bookInfo: {
+    paddingHorizontal: 4,
+  },
+  bookType: {
+    fontSize: 10,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    marginBottom: 2,
+  },
+  bookTitle: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#111827",
+    lineHeight: 16,
+  },
+  bottomNav: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+  },
+  navItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  navText: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 4,
   },
 });
