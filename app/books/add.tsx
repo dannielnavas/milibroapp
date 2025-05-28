@@ -2,18 +2,17 @@ import { GoogleBooks, OpenLibrary, SearchBook } from "@/models/books";
 import { useIsbnCodeStore } from "@/store/useIsbnCodeStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { useTitleStore } from "@/store/useTitleStore";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useFormik } from "formik";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
-  FlatList,
+  Dimensions,
   Image,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -315,79 +314,241 @@ export default function Add() {
     </ScrollView>
   );
 
-  return (
-    <SafeAreaView style={styles.mainContainer}>
-      <Link
-        href={"/(tabs)#index"}
-        style={{ padding: 10 }}
-        onPress={() => setTitle("")}
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "BOOK":
+        return "#F59E0B";
+      case "PODCAST":
+        return "#8B5CF6";
+      case "SUMMARY":
+        return "#06B6D4";
+      default:
+        return "#6B7280";
+    }
+  };
+
+  const renderBookItem = (book: GoogleBooks, index: number) => {
+    const isLarge = index === 1 || index === 2;
+    const itemWidth = (Dimensions.get("window").width - 60) / 3;
+    //isLarge
+    // ? (Dimensions.get("window").width - 48) / 2
+    // : (Dimensions.get("window").width - 60) / 3;
+
+    return (
+      <Pressable
+        key={index}
+        onPress={() => {
+          setAllResult([]);
+          validateEmptyData({
+            googleBooks: book,
+            openLibrary: {} as OpenLibrary,
+          });
+        }}
       >
-        <Ionicons name="arrow-back-outline" size={24} color="black" />
-      </Link>
-
-      <View style={styles.mainContainer}>
-        {loading && (
-          <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-            <ActivityIndicator size="large" color="#43c1d1" />
-            <Text>Cargando...</Text>
+        <View key={index} style={[styles.bookItem, { width: itemWidth }]}>
+          <View style={styles.bookImageContainer}>
+            <Image
+              source={{ uri: book.imageLinks?.thumbnail }}
+              style={styles.bookImage}
+            />
+            {/*<TouchableOpacity style={styles.favoriteButton}>
+            <Ionicons
+              name={book.isFavorite ? "heart" : "heart-outline"}
+              size={20}
+              color={book.isFavorite ? "#EF4444" : "#6B7280"}
+            />
+          </TouchableOpacity>*/}
           </View>
-        )}
+          <View style={styles.bookInfo}>
+            <Text style={[styles.bookType, { color: getTypeColor("BOOK") }]}>
+              {book.authors?.join(", ")}
+            </Text>
+            <Text style={styles.bookTitle} numberOfLines={2}>
+              {book.title}
+            </Text>
+          </View>
+        </View>
+      </Pressable>
+    );
+  };
 
-        {allResult?.length !== 0 && (
-          <ScrollView
-            style={styles.container}
-            contentContainerStyle={styles.contentContainer}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.bookGrid}>
-              <FlatList
-                data={allResult}
-                keyExtractor={(_, index) => index.toString()}
-                renderItem={({ item }) => (
-                  <Pressable
-                    style={styles.bookCardItem}
-                    onPress={() => {
-                      setAllResult([]);
-                      validateEmptyData({
-                        googleBooks: item,
-                        openLibrary: {} as OpenLibrary,
-                      });
-                    }}
-                  >
-                    <View style={styles.imageContainer}>
-                      <Image
-                        source={{
-                          uri: item.imageLinks?.thumbnail.replace(
-                            "http://",
-                            "https://"
-                          ),
-                        }}
-                        style={styles.bookCover}
-                        resizeMode="cover"
-                      />
-                    </View>
-                  </Pressable>
-                )}
-                numColumns={2}
-                contentContainerStyle={styles.bookGrid}
-              />
-            </View>
-          </ScrollView>
-        )}
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
 
-        {!loading && allResult?.length === 0 && renderForm()}
-      </View>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Books Grid */}
+        <View style={styles.booksGrid}>
+          {allResult.map((book, index) => renderBookItem(book, index))}
+          {!loading && allResult?.length === 0 && renderForm()}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-  },
   container: {
     flex: 1,
+    backgroundColor: "#F9FAFB",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#F9FAFB",
+  },
+  backButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111827",
+    marginLeft: 12,
+  },
+  headerSpacer: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  featuredSection: {
+    marginBottom: 20,
+  },
+  featuredContent: {
+    backgroundColor: "#FDE68A",
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  featuredText: {
+    flex: 1,
+    marginRight: 16,
+  },
+  featuredHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  heartIcon: {
+    backgroundColor: "#EF4444",
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  featuredTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  featuredDescription: {
+    fontSize: 14,
+    color: "#6B7280",
+    lineHeight: 20,
+  },
+  featuredImage: {
+    width: 80,
+    height: 120,
+    borderRadius: 8,
+  },
+  filterContainer: {
+    flexDirection: "row",
+    marginBottom: 20,
+    gap: 12,
+  },
+  filterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  filterText: {
+    fontSize: 14,
+    color: "#374151",
+    marginRight: 4,
+  },
+  booksGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingBottom: 20,
+  },
+  bookItem: {
+    marginBottom: 16,
+  },
+  bookImageContainer: {
+    position: "relative",
+    marginBottom: 8,
+  },
+  bookImage: {
+    width: "100%",
+    height: 220,
+    borderRadius: 8,
+    backgroundColor: "#E5E7EB",
+  },
+  favoriteButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  bookInfo: {
+    paddingHorizontal: 4,
+  },
+  bookType: {
+    fontSize: 10,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    marginBottom: 2,
+  },
+  bookTitle: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#111827",
+    lineHeight: 16,
+  },
+  bottomNav: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+  },
+  navItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  navText: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 4,
   },
   contentContainer: {
     padding: 20,
@@ -459,17 +620,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-  },
-  bookGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-around",
-    gap: 16,
-  },
-  bookCardItem: {
-    width: 190,
-    marginBottom: 32,
-    marginLeft: 20,
   },
 });
 
