@@ -1,11 +1,11 @@
 "use client";
 
-import { BookInfo } from "@/components/BookInfo";
 import type { Book } from "@/components/cardBook";
-import { Header } from "@/components/Header";
 import { useDetailsStore } from "@/store/useDetailsStore";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import * as Sharing from "expo-sharing";
 import { useFormik } from "formik";
 import { useEffect } from "react";
 import {
@@ -13,7 +13,10 @@ import {
   Image,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
+  Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import * as Yup from "yup";
@@ -99,136 +102,288 @@ export default function Detail() {
     }
   }
 
+  const shareBook = async () => {
+    const url = `https://milibro-danniel-dev.vercel.app/books/detail?id=${book._id}`;
+    console.log(url);
+    console.log(book._id);
+    await Sharing.shareAsync(url, {
+      dialogTitle: "Comparte este libro con tus amigos",
+      UTI: "com.google.Chrome.app",
+      mimeType: "text/plain",
+      anchor: {
+        x: 100,
+        y: 100,
+      },
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <Header
-        title={book.title}
-        onDelete={() => removeBook(book._id)}
-        onEdit={() => {
-          router.push("/books/edit");
-        }}
-      />
+      <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" />
 
-      <ScrollView style={styles.contentContainer}>
-        <View style={styles.imageContainer}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{book.title}...</Text>
+        {/*<View style={styles.headerRight}>
+          <TouchableOpacity style={styles.headerButton}>
+            <Ionicons name="search" size={24} color="#333" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerButton}>
+            <Ionicons name="barcode-outline" size={24} color="#333" />
+          </TouchableOpacity>
+        </View>*/}
+      </View>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Book Cover */}
+        <View style={styles.bookCoverContainer}>
           <Image
-            source={{ uri: book.image_url.replace("http://", "https://") }}
-            style={styles.image}
+            source={{
+              uri: book.image_url || "",
+            }}
+            style={styles.bookCover}
             resizeMode="cover"
           />
         </View>
 
-        <BookInfo book={book} />
+        {/* Genre Tags */}
+        <Text style={styles.genreTags}>{book.genre}</Text>
 
-        {/* <View style={styles.formContainer}>
-          <RatingInput
-            rating={formik.values.rating}
-            onRatingChange={(rating) => formik.setFieldValue("rating", rating)}
-            error={formik.errors.rating}
-            touched={formik.touched.rating}
-          />
+        {/* Book Title */}
+        <Text style={styles.bookTitle}>{book.title}</Text>
 
-          <DateInput
-            label="Fecha de inicio:"
-            date={formik.values.startDate}
-            showPicker={showStartPicker}
-            setShowPicker={setShowStartPicker}
-            onDateChange={(date) => formik.setFieldValue("startDate", date)}
-            error={formik.errors.startDate as string | undefined}
-            touched={!!formik.touched.startDate}
-          />
+        {/* Author and Rating */}
+        <View style={styles.authorRatingContainer}>
+          <Text style={styles.authorText}>
+            By <Text style={styles.authorName}>{book.author}</Text>
+          </Text>
+          {/*<Text style={styles.separator}> | </Text>*/}
+          {/*<View style={styles.ratingContainer}>
+            {[1, 2, 3, 4].map((star) => (
+              <Ionicons key={star} name="star" size={16} color="#ff6b35" />
+            ))}
+            <Ionicons name="star-outline" size={16} color="#ff6b35" />
+            <Text style={styles.ratingText}>4.20</Text>
+          </View>*/}
+        </View>
 
-          <DateInput
-            label="Fecha de fin:"
-            date={formik.values.endDate}
-            showPicker={showEndPicker}
-            setShowPicker={setShowEndPicker}
-            onDateChange={(date) => formik.setFieldValue("endDate", date)}
-            error={formik.errors.endDate as string | undefined}
-            touched={!!formik.touched.endDate}
-          />
+        {/* Action Buttons */}
+        <View style={styles.actionButtonsContainer}>
+          <TouchableOpacity style={styles.actionButton}>
+            <Ionicons name="information-circle-outline" size={20} color="#666" />
+            <Text style={styles.actionButtonText}>Información</Text>
+          </TouchableOpacity>
 
-          <SubmitButton onPress={() => formik.handleSubmit()} />
-        </View> */}
+          <TouchableOpacity style={styles.wantToReadButton}>
+            <Text style={styles.wantToReadText}>Leer ahora</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionButton} onPress={shareBook}>
+            <Ionicons name="share-outline" size={20} color="#666" />
+            <Text style={styles.actionButtonText}>Compartir</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Book Description */}
+        <View style={styles.descriptionContainer}>
+          <Text style={styles.descriptionTitle}>Descripción</Text>
+          <Text style={styles.descriptionText}>{book.notes}</Text>
+        </View>
       </ScrollView>
+
+      {/* Bottom Navigation */}
+      {/*<View style={styles.bottomNavigation}>
+        <TouchableOpacity style={styles.navItem}>
+          <Ionicons name="home" size={24} color="#8B4513" />
+          <Text style={styles.navText}>Home</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
+          <Ionicons name="compass-outline" size={24} color="#666" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
+          <Ionicons name="bookmark-outline" size={24} color="#666" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
+          <Ionicons name="menu" size={24} color="#666" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Bottom Indicator */}
+      <View style={styles.bottomIndicator} />
     </SafeAreaView>
   );
 }
 const styles = StyleSheet.create({
-  formLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    paddingTop: 50,
+    backgroundColor: "#f5f5f5",
   },
-  contentContainer: {
-    padding: 16,
-  },
-  imageContainer: {
+  header: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 24,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#f5f5f5",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
   },
-  image: {
+  headerButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+    flex: 1,
+    marginLeft: 16,
+  },
+  headerRight: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  bookCoverContainer: {
+    alignItems: "center",
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  bookCover: {
     width: 200,
     height: 300,
-    borderRadius: 8,
+    borderRadius: 12,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  formContainer: {
-    marginTop: 24,
-    gap: 16,
+  genreTags: {
+    textAlign: "center",
+    color: "#ff6b35",
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 8,
+    flexWrap: "wrap",
+    alignSelf: "center",
+    maxWidth: "90%",
   },
-  editForm: {
-    padding: 16,
+  bookTitle: {
+    textAlign: "center",
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 8,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 4,
-    padding: 8,
-    marginBottom: 16,
-  },
-  statusButtons: {
+  authorRatingContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginBottom: 16,
+    alignItems: "center",
+    marginBottom: 30,
   },
-  statusButton: {
-    padding: 8,
-    borderRadius: 4,
-    marginHorizontal: 8,
-  },
-  statusButtonActive: {
-    backgroundColor: "#ff4081",
-  },
-  statusButtonText: {
+  authorText: {
+    fontSize: 16,
     color: "#666",
+    width: "100%",
+    textAlign: "center",
   },
-  statusButtonTextActive: {
-    color: "#fff",
+  authorName: {
+    color: "#4a9b8e",
+    fontWeight: "500",
+    fontSize: 16,
+    width: "100%",
+    textAlign: "center",
   },
-  textArea: {
-    height: 100,
-    textAlignVertical: "top",
-  },
-  favoriteToggleText: {
+  separator: {
     color: "#666",
+    fontSize: 16,
   },
-  favoriteToggle: {
+  ratingContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginTop: 16,
+    gap: 2,
+  },
+  ratingText: {
+    marginLeft: 4,
+    fontSize: 16,
+    color: "#333",
+    fontWeight: "500",
+  },
+  actionButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 40,
+    paddingHorizontal: 10,
+  },
+  actionButton: {
+    alignItems: "center",
+    gap: 4,
+  },
+  actionButtonText: {
+    fontSize: 12,
+    color: "#666",
+    fontWeight: "500",
+  },
+  wantToReadButton: {
+    backgroundColor: "#4a9b8e",
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 25,
+  },
+  wantToReadText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  descriptionContainer: {
+    marginBottom: 40,
+  },
+  descriptionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 12,
+  },
+  descriptionText: {
+    fontSize: 16,
+    color: "#666",
+    lineHeight: 24,
+  },
+  bottomNavigation: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    paddingVertical: 12,
+    backgroundColor: "#f5f5f5",
+    borderTopWidth: 1,
+    borderTopColor: "#e0e0e0",
+  },
+  navItem: {
+    alignItems: "center",
+    gap: 2,
+  },
+  navText: {
+    fontSize: 12,
+    color: "#8B4513",
+    fontWeight: "500",
+  },
+  bottomIndicator: {
+    height: 4,
+    backgroundColor: "#ccc",
+    marginHorizontal: 120,
+    borderRadius: 2,
+    marginBottom: 8,
   },
 });
 
