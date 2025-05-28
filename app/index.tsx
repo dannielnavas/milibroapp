@@ -1,17 +1,19 @@
 import { UserModel } from "@/models/user";
 import { useUserStore } from "@/store/useUserStore";
+import { LinearGradient } from "expo-linear-gradient";
 import * as LocalAuthentication from "expo-local-authentication";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { StatusBar } from "expo-status-bar";
-import { useFormik } from "formik";
+import { Formik } from "formik";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
-  ImageBackground,
+  Dimensions,
+  Image,
   KeyboardAvoidingView,
   Platform,
+  SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -19,35 +21,74 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Path, Svg } from "react-native-svg";
 import * as Yup from "yup";
 
+const { width, height } = Dimensions.get("window");
+
+const BookSvg = ({ size = 100 }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M12 6.25278V19.2528M12 6.25278C10.8321 5.47686 9.24649 5 7.5 5C5.75351 5 4.16789 5.47686 3 6.25278V19.2528C4.16789 18.4769 5.75351 18 7.5 18C9.24649 18 10.8321 18.4769 12 19.2528M12 6.25278C13.1679 5.47686 14.7535 5 16.5 5C18.2465 5 19.8321 5.47686 21 6.25278V19.2528C19.8321 18.4769 18.2465 18 16.5 18C14.7535 18 13.1679 18.4769 12 19.2528"
+      stroke="#FFB6C1"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M7 9H8M7 12H8M16 9H17M16 12H17"
+      stroke="#B19CD9"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+const BookWithRing = ({ size = 120 }) => (
+  <View style={[styles.bookContainer, { width: size + 50, height: size + 50 }]}>
+    <View style={styles.ringContainer}>
+      <View
+        style={[
+          styles.ring,
+          { width: size + 30, height: size + 30, borderRadius: (size + 30) / 2 },
+        ]}
+      />
+    </View>
+    <View
+      style={[
+        styles.bookWrapper,
+        { width: size, height: size, borderRadius: size / 2 },
+      ]}
+    >
+      <BookSvg size={size * 0.7} />
+    </View>
+  </View>
+);
+
+const PixelatedText = ({ text, style }: { text: string; style: any }) => {
+  return <Text style={[styles.pixelatedText, style]}>{text}</Text>;
+};
+
+const LoginSchema = Yup.object().shape({
+  email: Yup.string().email("Invalid email").required("Email is required"),
+  password: Yup.string()
+    .min(6, "Password must be at least 6 characters")
+    .required("Password is required"),
+});
+
 export default function App() {
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
-  const router = useRouter();
+  const [hasBiometric, setHasBiometric] = useState(false);
+  const [userData, setUserData] = useState<Record<string, any> | null>(null);
   const addUserData = useUserStore((state) => state.addUser);
 
-  const formik = useFormik({
-    initialValues: {
-      email: "",
-      password: "",
-    },
-    validationSchema: Yup.object().shape({
-      email: Yup.string()
-        .required("El correo electrónico es obligatorio")
-        .email("Ingresa un correo electrónico válido"),
-      password: Yup.string()
-        .required("La contraseña es obligatoria")
-        .min(6, "La contraseña debe tener al menos 6 caracteres"),
-    }),
-    validateOnChange: true,
-    validateOnBlur: true,
-    onSubmit: async (formData) => {
-      setLoading(true);
-      const { email, password } = formData;
-      await fetchLogin({ email: email.toLowerCase(), password });
-    },
-  });
+  const handleLogin = async (values: { email: string; password: string }) => {
+    setIsLoading(true);
+    const { email, password } = values;
+    await fetchLogin({ email: email.toLowerCase(), password });
+  };
 
   const fetchLogin = async ({
     email,
@@ -87,7 +128,7 @@ export default function App() {
         "Por favor verifica tus credenciales e intenta nuevamente"
       );
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -110,7 +151,7 @@ export default function App() {
       });
 
       if (result.success) {
-        setLoading(true);
+        setIsLoading(true);
         const data = JSON.parse(
           (await SecureStore.getItemAsync("dataUser")) ?? "{}"
         );
@@ -129,182 +170,338 @@ export default function App() {
     const checkSavedCredentials = async () => {
       const savedData = await SecureStore.getItemAsync("dataUser");
       if (savedData && biometricAvailable) {
-        handleAuthentication();
+        const dataUser = JSON.parse(savedData);
+        setUserData(dataUser);
+        setHasBiometric(true);
       }
     };
     checkSavedCredentials();
   }, [biometricAvailable]);
 
-  return (
-    <ImageBackground
-      source={{
-        uri: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6",
-      }}
-      style={styles.background}
-      resizeMode="cover"
-    >
-      <StatusBar style="light" />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.container}
-      >
-        <View style={styles.overlay}>
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#FFFFFF" />
-              <Text style={styles.loadingText}>Iniciando sesión...</Text>
+  return !hasBiometric ? (
+    <LinearGradient colors={["#2D1B4E", "#1E0E33"]} style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.keyboardView}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.header}>
+              <BookWithRing size={100} />
+              <PixelatedText text="Welcome Back" style={styles.welcomeText} />
+              <Text style={styles.subtitleText}>Sign in to continue</Text>
             </View>
-          ) : (
-            <>
-              <Text style={styles.title}>Mi Lista de Libros</Text>
-              <View style={styles.form}>
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      formik.touched.email &&
-                        formik.errors.email &&
-                        styles.inputError,
-                    ]}
-                    placeholder="Correo electrónico"
-                    placeholderTextColor="#A0A0A0"
-                    value={formik.values.email}
-                    onChangeText={formik.handleChange("email")}
-                    onBlur={formik.handleBlur("email")}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    accessibilityLabel="Correo electrónico"
-                  />
-                  {formik.touched.email && formik.errors.email && (
-                    <Text style={styles.errorText}>{formik.errors.email}</Text>
-                  )}
-                </View>
 
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      formik.touched.password &&
-                        formik.errors.password &&
-                        styles.inputError,
-                    ]}
-                    placeholder="Contraseña"
-                    placeholderTextColor="#A0A0A0"
-                    value={formik.values.password}
-                    onChangeText={formik.handleChange("password")}
-                    onBlur={formik.handleBlur("password")}
-                    secureTextEntry
-                    autoComplete="password"
-                    accessibilityLabel="Contraseña"
-                  />
-                  {formik.touched.password && formik.errors.password && (
-                    <Text style={styles.errorText}>{formik.errors.password}</Text>
-                  )}
-                </View>
+            <Formik
+              initialValues={{ email: "", password: "" }}
+              validationSchema={LoginSchema}
+              onSubmit={handleLogin}
+            >
+              {({
+                handleChange,
+                handleBlur,
+                handleSubmit,
+                values,
+                errors,
+                touched,
+              }) => (
+                <View style={styles.formContainer}>
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Email</Text>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        touched.email && errors.email && styles.inputError,
+                      ]}
+                      placeholder="Enter your email"
+                      placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                      value={values.email}
+                      onChangeText={handleChange("email")}
+                      onBlur={handleBlur("email")}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                    {touched.email && errors.email && (
+                      <Text style={styles.errorText}>{errors.email}</Text>
+                    )}
+                  </View>
 
-                <TouchableOpacity
-                  style={[
-                    styles.button,
-                    (!formik.isValid || !formik.dirty) && styles.buttonDisabled,
-                  ]}
-                  onPress={() => formik.handleSubmit()}
-                  disabled={!formik.isValid || !formik.dirty}
-                >
-                  <Text style={styles.buttonText}>Iniciar Sesión</Text>
-                </TouchableOpacity>
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Password</Text>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        touched.password && errors.password && styles.inputError,
+                      ]}
+                      placeholder="Enter your password"
+                      placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                      value={values.password}
+                      onChangeText={handleChange("password")}
+                      onBlur={handleBlur("password")}
+                      secureTextEntry
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                    {touched.password && errors.password && (
+                      <Text style={styles.errorText}>{errors.password}</Text>
+                    )}
+                  </View>
 
-                {biometricAvailable && (
-                  <TouchableOpacity
-                    style={[styles.button, styles.biometricButton]}
-                    onPress={handleAuthentication}
-                  >
-                    <Text style={styles.buttonText}>Usar huella digital</Text>
+                  <TouchableOpacity style={styles.forgotPassword}>
+                    <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
                   </TouchableOpacity>
-                )}
+
+                  <TouchableOpacity
+                    style={[
+                      styles.loginButton,
+                      isLoading && styles.loginButtonDisabled,
+                    ]}
+                    onPress={() => handleSubmit()}
+                    disabled={isLoading}
+                  >
+                    <Text style={styles.loginButtonText}>
+                      {isLoading ? "Signing In..." : "Sign In"}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <View style={styles.signupContainer}>
+                    <Text style={styles.signupText}>Don't have an account? </Text>
+                    <TouchableOpacity>
+                      <Text style={styles.signupLink}>Sign Up</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </Formik>
+          </ScrollView>
+
+          <View style={styles.homeIndicator} />
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </LinearGradient>
+  ) : (
+    <LinearGradient colors={["#2D1B4E", "#1E0E33"]} style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.content}>
+          <View style={styles.centerContent}>
+            <BookWithRing />
+            <PixelatedText text="Log in" style={styles.loginText} />
+
+            <TouchableOpacity style={styles.userCard} onPress={handleAuthentication}>
+              <Image
+                source={{ uri: "https://via.placeholder.com/40" }}
+                style={styles.avatar}
+              />
+              <View style={styles.userInfo}>
+                <Text style={styles.userName}>{userData?.name}</Text>
+                <Text style={styles.userEmail}>{userData?.email}</Text>
               </View>
-            </>
-          )}
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => setHasBiometric(false)}>
+              <Text style={styles.anotherAccountText}>Use another account</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.homeIndicator} />
         </View>
-      </KeyboardAvoidingView>
-    </ImageBackground>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
+  container: {
     flex: 1,
   },
-  container: {
+  content: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 50,
+  },
+  centerContent: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    width: "100%",
   },
-  overlay: {
-    backgroundColor: "rgba(0,0,0,0.7)",
-    padding: 24,
-    borderRadius: 16,
-    width: "85%",
+  loginText: {
+    textTransform: "uppercase",
+  },
+  userCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 50,
+    padding: 10,
+    paddingHorizontal: 20,
+    width: width * 0.8,
+    maxWidth: 350,
+    marginBottom: 20,
+  },
+  userName: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 15,
+  },
+  userEmail: {
+    color: "#FFFFFF",
+    opacity: 0.7,
+    fontSize: 14,
+  },
+  anotherAccountText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    marginTop: 20,
+  },
+  userInfo: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+  },
+  header: {
+    alignItems: "center",
+    paddingTop: 40,
+    paddingBottom: 30,
+  },
+  bookContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  bookWrapper: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFB6C1",
+  },
+  ringContainer: {
+    position: "absolute",
+    justifyContent: "center",
     alignItems: "center",
   },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
+  ring: {
+    borderWidth: 6,
+    borderColor: "#B19CD9",
+    transform: [{ rotateX: "70deg" }],
+  },
+  pixelatedText: {
+    fontFamily: Platform.OS === "ios" ? "Courier New" : "monospace",
+    fontSize: 24,
     color: "#FFFFFF",
-    marginBottom: 32,
+    letterSpacing: 1,
+    fontWeight: "bold",
+  },
+  welcomeText: {
+    marginBottom: 8,
+  },
+  subtitleText: {
+    color: "rgba(255, 255, 255, 0.7)",
+    fontSize: 16,
     textAlign: "center",
   },
-  form: {
+  formContainer: {
+    flex: 1,
     width: "100%",
-    gap: 16,
+    maxWidth: 350,
+    alignSelf: "center",
   },
-  inputWrapper: {
-    width: "100%",
+  inputContainer: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
   },
   input: {
-    backgroundColor: "rgba(255,255,255,0.95)",
-    padding: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 12,
+    padding: 16,
     fontSize: 16,
-    width: "100%",
-    color: "#333333",
+    color: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   inputError: {
-    borderWidth: 1,
     borderColor: "#FF6B6B",
   },
   errorText: {
     color: "#FF6B6B",
     fontSize: 12,
     marginTop: 4,
-    marginLeft: 4,
   },
-  button: {
-    backgroundColor: "#4A90E2",
-    padding: 16,
+  forgotPassword: {
+    alignSelf: "flex-end",
+    marginBottom: 30,
+  },
+  forgotPasswordText: {
+    color: "#B19CD9",
+    fontSize: 14,
+  },
+  loginButton: {
+    backgroundColor: "#B19CD9",
     borderRadius: 12,
-    width: "100%",
+    padding: 16,
     alignItems: "center",
-    marginTop: 8,
+    marginBottom: 20,
+    shadowColor: "#B19CD9",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  buttonDisabled: {
-    backgroundColor: "#4A90E2",
-    opacity: 0.5,
+  loginButtonDisabled: {
+    opacity: 0.6,
   },
-  biometricButton: {
-    backgroundColor: "#2ECC71",
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  loadingContainer: {
-    alignItems: "center",
-  },
-  loadingText: {
+  loginButtonText: {
     color: "#FFFFFF",
     fontSize: 18,
-    marginTop: 16,
+    fontWeight: "bold",
+  },
+  signupContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  signupText: {
+    color: "rgba(255, 255, 255, 0.7)",
+    fontSize: 14,
+  },
+  signupLink: {
+    color: "#FFB6C1",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  homeIndicator: {
+    width: 134,
+    height: 5,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 3,
+    alignSelf: "center",
+    marginBottom: 10,
   },
 });
