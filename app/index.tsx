@@ -118,7 +118,7 @@ export default function App() {
       addUserData(data);
       await SecureStore.setItemAsync(
         "dataUser",
-        JSON.stringify({ email, password })
+        JSON.stringify({ email, password, name: data.user.name })
       );
       ToastAndroid.show("¡Bienvenido!", ToastAndroid.SHORT);
       router.replace("/(tabs)#index");
@@ -364,6 +364,7 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     marginTop: 20,
+    width: 150,
   },
   userInfo: {
     flex: 1,

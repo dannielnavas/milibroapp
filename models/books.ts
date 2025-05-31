@@ -24,14 +24,19 @@ interface ImageLinks {
   thumbnail: string;
 }
 
-interface Isbn {
+/*interface Isbn {
   isbn_10: string[];
   isbn_13: string[];
   openlibrary: string[];
+}*/
+
+interface Isbn {
+  identifier: string;
+  type: string;
 }
 
 export interface GoogleBooks {
-  isbn: string | string[];
+  isbn: Isbn[];
   title: string;
   publishedDate: string;
   description: string;

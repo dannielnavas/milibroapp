@@ -89,24 +89,11 @@ export default function Index() {
       const data: Book[] = await response.json();
       data.sort((a, b) => a.author.localeCompare(b.author));
       setBooks(data);
-      const authors = data.reduce((acc, book) => {
-        const author = acc.find((a) => a.author === book.author);
-        if (author) {
-          author.count++;
-        } else {
-          acc.push({ author: book.author, count: 1 });
-        }
-        return acc;
-      }, [] as { author: string; count: number }[]);
       setLoading(false);
     } catch (error) {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    console.log(books);
-  }, [books]);
 
   const openModal = () => {
     setIsVisible(true);

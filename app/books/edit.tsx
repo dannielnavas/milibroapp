@@ -39,7 +39,6 @@ export default function EditBook() {
   const [showEndPicker, setShowEndPicker] = useState(false);
 
   const book: Book = useDetailsStore((state) => state.book);
-  console.log("book", book);
 
   const formData = useFormik<FormValues>({
     initialValues: initialValues(),

@@ -2,25 +2,24 @@ import { GoogleBooks, OpenLibrary, SearchBook } from "@/models/books";
 import { useIsbnCodeStore } from "@/store/useIsbnCodeStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { useTitleStore } from "@/store/useTitleStore";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { useFormik } from "formik";
 import { useEffect, useState } from "react";
 import {
   Alert,
   Dimensions,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as Yup from "yup";
 
 export const colors = {
   background: "#f0f0f0",
@@ -45,58 +44,29 @@ interface FormValues {
 export default function Add() {
   const [loading, setLoading] = useState(false);
   const [allResult, setAllResult] = useState<GoogleBooks[]>([]);
+  const [selectedBook, setSelectedBook] = useState<GoogleBooks | null>(null);
   const router = useRouter();
   const scannedData = useIsbnCodeStore((state) => state.isbnCode);
   const library = useLibraryStore((state) => state.library);
   const title = useTitleStore((state) => state.title);
   const setTitle = useTitleStore((state) => state.setTitle);
 
-  const formik = useFormik<FormValues>({
-    initialValues: initialValues(),
-    validationSchema: Yup.object().shape({
-      title: Yup.string()
-        .required("El título es obligatorio")
-        .min(2, "El título debe tener al menos 2 caracteres"),
-      author: Yup.string()
-        .required("El autor es obligatorio")
-        .min(2, "El autor debe tener al menos 2 caracteres"),
-      isbn: Yup.string()
-        .required("El ISBN es obligatorio")
-        .matches(/^[0-9-]{10,13}$/, "El ISBN debe tener entre 10 y 13 dígitos"),
-      publication_year: Yup.number()
-        .required("El año de publicación es obligatorio")
-        .min(1000, "Año inválido")
-        .max(new Date().getFullYear(), "El año no puede ser futuro"),
-      publisher: Yup.string()
-        .required("La editorial es obligatoria")
-        .min(2, "La editorial debe tener al menos 2 caracteres"),
-      image_url: Yup.string()
-        .required("La URL de la imagen es obligatoria")
-        .url("Debe ser una URL válida"),
-      lenguaje: Yup.string()
-        .required("El idioma es obligatorio")
-        .min(2, "El idioma debe tener al menos 2 caracteres"),
-      wishlist: Yup.boolean(),
-    }),
-    validateOnChange: true,
-    onSubmit: async (values) => {
-      try {
-        setLoading(true);
-        await addBook(values);
-        router.back();
-      } catch (error) {
-        console.error(error);
-        Alert.alert("Error", "No se pudo guardar el libro");
-      } finally {
-        setLoading(false);
-      }
-    },
-  });
-
-  const addBook = async (formData: any) => {
+  const addBook = async (dataBook: GoogleBooks | null) => {
+    if (!dataBook) return;
     try {
       const payload = {
-        ...formData,
+        title: dataBook.title,
+        author: dataBook.authors?.join(","),
+        isbn: dataBook.isbn[0].identifier,
+        publication_year: dataBook.publishedDate.split("-")[0],
+        image_url: dataBook.imageLinks?.thumbnail,
+        lenguaje: dataBook.language,
+        startDate: new Date().toISOString(),
+        endDate: "",
+        status: "reading",
+        genre: dataBook.categories?.join(", "),
+        totalPages: dataBook.pages,
+        description: dataBook.description,
         library: library.id,
         wishlist: library.wishlist,
       };
@@ -110,12 +80,13 @@ export default function Add() {
         body: JSON.stringify(payload),
       });
       const data = await response.json();
-      console.log(data);
+      console.log("resultado", data);
+
       router.replace("/(tabs)#index");
       setTitle("");
       setLoading(false);
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   };
 
@@ -159,7 +130,7 @@ export default function Add() {
       }
       setAllResult(data.googleBooks as unknown as GoogleBooks[]);
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   }
 
@@ -180,37 +151,16 @@ export default function Add() {
 
       validateEmptyData(data);
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   }
 
   const validateEmptyData = (data: SearchBook) => {
     if (Object.keys(data.openLibrary).length > 0) {
-      const author = data.openLibrary?.authors?.join(",") ?? "";
-      formik.setValues({
-        title: data.openLibrary.title || "",
-        author: author,
-        isbn: scannedData ?? "",
-        publication_year: parseInt(data.openLibrary.publishedDate) || 0,
-        publisher: data.openLibrary.publisher || "",
-        image_url: data.openLibrary.imageLinks?.thumbnail || "",
-        lenguaje: data.openLibrary.language || "",
-        wishlist: false,
-      });
       setLoading(false);
       return;
     } else if (Object.keys(data.googleBooks).length > 0) {
-      const author = data.googleBooks?.authors?.join(",") ?? "";
-      formik.setValues({
-        title: data.googleBooks.title || "",
-        author: author,
-        isbn: scannedData ?? "",
-        publication_year: parseInt(data.googleBooks.publishedDate) || 0,
-        publisher: data.googleBooks.publisher || "",
-        image_url: data.googleBooks.imageLinks?.thumbnail || "",
-        lenguaje: data.googleBooks.language || "",
-        wishlist: false,
-      });
+      setSelectedBook(data.googleBooks);
       setLoading(false);
       return;
     } else {
@@ -231,87 +181,85 @@ export default function Add() {
     }
   };
 
-  const validateFields = () => {
-    if (!formik.values.title || !formik.values.author || !formik.values.isbn) {
-      Alert.alert(
-        "Error",
-        "Por favor completa los campos obligatorios (título, autor e ISBN)"
-      );
-      return false;
-    }
-    return true;
-  };
-
-  const handleSubmit = async () => {
-    if (!validateFields()) return;
-
-    setLoading(true);
-    try {
-      await addBook(formik.values);
-      router.back();
-    } catch (err) {
-      Alert.alert("Error", "No se pudo guardar el libro");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const renderForm = () => (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      showsVerticalScrollIndicator={false}
-    >
-      <Text style={styles.title}>Agregar Nuevo Libro</Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Book Title */}
+        <Text style={styles.bookTitle}>{selectedBook?.title}</Text>
+        <Text style={styles.bookAuthor}>
+          Por: {selectedBook?.authors?.join(", ")}
+        </Text>
 
-      {Boolean(formik.values.image_url) && (
-        <View style={styles.imageContainer}>
-          <Image
-            source={{
-              uri: formik.values.image_url.replace("http://", "https://"),
-            }}
-            style={styles.bookCover}
-            resizeMode="cover"
-          />
-        </View>
-      )}
-
-      {(Object.keys(formik.initialValues) as Array<keyof FormValues>).map(
-        (fieldName) => (
-          <View key={fieldName} style={styles.inputContainer}>
-            <Text style={styles.label}>
-              {fieldName.charAt(0).toUpperCase() +
-                fieldName.slice(1).replace("_", " ")}
-            </Text>
-            <TextInput
-              style={[
-                styles.input,
-                formik.errors[fieldName] &&
-                  formik.touched[fieldName] && {
-                    borderColor: "#dc3545",
-                  },
-              ]}
-              value={String(formik.values[fieldName])}
-              onChangeText={(text) => formik.setFieldValue(fieldName, text)}
-              onBlur={() => formik.setFieldTouched(fieldName)}
-              placeholder={`Ingrese ${fieldName.replace("_", " ")}`}
-              keyboardType={fieldName === "publication_year" ? "numeric" : "default"}
+        {/* Book Cover */}
+        <View style={styles.bookCoverContainer}>
+          <View style={styles.bookShadowWrapper}>
+            <View style={styles.bookSpine} />
+            <Image
+              source={{
+                uri: selectedBook?.imageLinks?.thumbnail,
+              }}
+              style={styles.bookCover}
+              resizeMode="cover"
             />
-            {formik.errors[fieldName] && formik.touched[fieldName] && (
-              <Text style={styles.errorText}>{formik.errors[fieldName]}</Text>
-            )}
           </View>
-        )
-      )}
+        </View>
 
+        {/* Book Information */}
+        <View style={styles.bookInfoContainer}>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Categoría:</Text>
+            <Text style={styles.infoValue}>
+              {selectedBook?.categories?.join(", ")}
+            </Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Lenguaje:</Text>
+            <Text style={styles.infoValue}>{selectedBook?.language}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Fecha de publicación:</Text>
+            <Text style={styles.infoValue}>{selectedBook?.publishedDate}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Páginas:</Text>
+            <Text style={styles.infoValue}>{selectedBook?.pages}</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.infoRow}
+            onPress={() => Linking.openURL(selectedBook?.infoLink ?? "")}
+          >
+            <Text style={styles.infoLabel}>Link de información:</Text>
+            <View style={styles.linkContainer}>
+              <Text style={styles.linkText}>Ver en Google Books</Text>
+              <Feather name="external-link" size={14} color="#E75A7C" />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Synopsis */}
+        <View style={styles.synopsisContainer}>
+          <Text style={styles.synopsisTitle}>Resumen</Text>
+          <Text style={styles.synopsisText}>{selectedBook?.description}</Text>
+        </View>
+
+        {/* Extra space at bottom to ensure content isn't hidden behind floating button */}
+        <View style={styles.buttonSpaceholder} />
+      </ScrollView>
+
+      {/* Floating Button - Always at bottom */}
       <TouchableOpacity
-        style={[styles.button, !formik.isValid && { backgroundColor: "#cccccc" }]}
-        onPress={() => formik.handleSubmit()}
-        disabled={!formik.isValid}
+        style={styles.floatingButton}
+        onPress={() => addBook(selectedBook)}
       >
-        <Text style={styles.buttonText}>Guardar Libro</Text>
+        <Text style={styles.actionButtonText}>Agregar libro a mi biblioteca</Text>
       </TouchableOpacity>
-    </ScrollView>
+
+      <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
+    </SafeAreaView>
   );
 
   const getTypeColor = (type: string) => {
@@ -351,13 +299,6 @@ export default function Add() {
               source={{ uri: book.imageLinks?.thumbnail }}
               style={styles.bookImage}
             />
-            {/*<TouchableOpacity style={styles.favoriteButton}>
-            <Ionicons
-              name={book.isFavorite ? "heart" : "heart-outline"}
-              size={20}
-              color={book.isFavorite ? "#EF4444" : "#6B7280"}
-            />
-          </TouchableOpacity>*/}
           </View>
           <View style={styles.bookInfo}>
             <Text style={[styles.bookType, { color: getTypeColor("BOOK") }]}>
@@ -374,7 +315,14 @@ export default function Add() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
+      <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#333" />
+        </TouchableOpacity>
+      </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Books Grid */}
@@ -395,9 +343,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#f5f5f5",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
   },
   backButton: {
     padding: 4,
@@ -608,10 +559,111 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginVertical: 20,
   },
-  bookCover: {
-    width: 160,
+  bookCoverContainer: {
+    alignItems: "center",
+    marginBottom: 24,
+    marginTop: 8,
+  },
+  bookShadowWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 10,
+    backgroundColor: "transparent",
+    borderRadius: 14,
+  },
+  bookSpine: {
+    width: 10,
     height: 280,
-    borderRadius: 8,
+    backgroundColor: "#e5e5e5",
+    borderTopLeftRadius: 10,
+    borderBottomLeftRadius: 10,
+    marginRight: -4,
+    zIndex: 1,
+    borderRightWidth: 1,
+    borderRightColor: "#d1d5db",
+  },
+  bookCover: {
+    width: 170,
+    height: 280,
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 16,
+    borderTopLeftRadius: 2,
+    borderBottomLeftRadius: 2,
+    backgroundColor: "#fff",
+    borderWidth: 2,
+    borderColor: "#fff",
+    zIndex: 2,
+  },
+  bookAuthor: {
+    fontSize: 18,
+    color: "#777",
+    marginBottom: 20,
+  },
+  bookInfoContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  infoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: "#666",
+    fontWeight: "500",
+    flex: 1,
+  },
+  infoValue: {
+    fontSize: 14,
+    color: "#333",
+    fontWeight: "400",
+    flex: 1,
+    textAlign: "right",
+  },
+  linkContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  linkText: {
+    fontSize: 14,
+    color: "#E75A7C",
+    fontWeight: "500",
+    marginRight: 4,
+  },
+
+  buttonSpaceholder: {
+    height: 80, // Space to ensure content isn't hidden behind floating button
+  },
+  floatingButton: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: "#E75A7C",
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    // Shadow for iOS
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -619,7 +671,33 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    // Elevation for Android
     elevation: 5,
+  },
+  headerButton: {
+    padding: 4,
+  },
+  synopsisContainer: {
+    marginBottom: 20,
+  },
+  synopsisTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  synopsisText: {
+    fontSize: 16,
+    color: "#666",
+    lineHeight: 24,
+  },
+  actionButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  scrollView: {
+    flex: 1,
+    padding: 2,
   },
 });
 

@@ -1,7 +1,6 @@
 import { useDetailsStore } from "@/store/useDetailsStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
 import {
   Image,
   StyleSheet,
@@ -25,7 +24,8 @@ export interface Book {
   endDate: string;
   rating: number;
   startDate: string;
-
+  description: string;
+  lenguaje: string;
   genre?: string;
   status?: string;
   totalPages?: number;
@@ -46,10 +46,6 @@ const CardBook = ({ book }: CardBookProps) => {
     addBook(book);
     router.push("/books/detail");
   };
-
-  useEffect(() => {
-    console.log(book);
-  }, []);
 
   return (
     <TouchableWithoutFeedback onPress={goToBooks}>

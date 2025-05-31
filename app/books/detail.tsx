@@ -7,10 +7,11 @@ import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import * as Sharing from "expo-sharing";
 import { useFormik } from "formik";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Image,
+  Modal,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -24,6 +25,7 @@ import * as Yup from "yup";
 export default function Detail() {
   const book: Book = useDetailsStore((state) => state.book);
   const router = useRouter();
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const formik = useFormik({
     initialValues: {
@@ -104,8 +106,6 @@ export default function Detail() {
 
   const shareBook = async () => {
     const url = `https://milibro-danniel-dev.vercel.app/books/detail?id=${book._id}`;
-    console.log(url);
-    console.log(book._id);
     await Sharing.shareAsync(url, {
       dialogTitle: "Comparte este libro con tus amigos",
       UTI: "com.google.Chrome.app",
@@ -126,15 +126,7 @@ export default function Detail() {
         <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{book.title}...</Text>
-        {/*<View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerButton}>
-            <Ionicons name="search" size={24} color="#333" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerButton}>
-            <Ionicons name="barcode-outline" size={24} color="#333" />
-          </TouchableOpacity>
-        </View>*/}
+        <Text style={styles.headerTitle}>{book.title}</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -160,21 +152,16 @@ export default function Detail() {
           <Text style={styles.authorText}>
             By <Text style={styles.authorName}>{book.author}</Text>
           </Text>
-          {/*<Text style={styles.separator}> | </Text>*/}
-          {/*<View style={styles.ratingContainer}>
-            {[1, 2, 3, 4].map((star) => (
-              <Ionicons key={star} name="star" size={16} color="#ff6b35" />
-            ))}
-            <Ionicons name="star-outline" size={16} color="#ff6b35" />
-            <Text style={styles.ratingText}>4.20</Text>
-          </View>*/}
         </View>
 
         {/* Action Buttons */}
         <View style={styles.actionButtonsContainer}>
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="information-circle-outline" size={20} color="#666" />
-            <Text style={styles.actionButtonText}>Información</Text>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => setShowConfirm(true)}
+          >
+            <Ionicons name="trash-outline" size={20} color="#666" />
+            <Text style={styles.actionButtonText}>Eliminar</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.wantToReadButton}>
@@ -190,29 +177,47 @@ export default function Detail() {
         {/* Book Description */}
         <View style={styles.descriptionContainer}>
           <Text style={styles.descriptionTitle}>Descripción</Text>
-          <Text style={styles.descriptionText}>{book.notes}</Text>
+          <Text style={styles.descriptionText}>{book.description}</Text>
         </View>
       </ScrollView>
 
-      {/* Bottom Navigation */}
-      {/*<View style={styles.bottomNavigation}>
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="home" size={24} color="#8B4513" />
-          <Text style={styles.navText}>Home</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="compass-outline" size={24} color="#666" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="bookmark-outline" size={24} color="#666" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="menu" size={24} color="#666" />
-        </TouchableOpacity>
-      </View>
-
       {/* Bottom Indicator */}
       <View style={styles.bottomIndicator} />
+
+      {/* Confirm Delete Modal */}
+      <Modal
+        visible={showConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowConfirm(false)}
+      >
+        <View style={modalStyles.overlay}>
+          <View style={modalStyles.modalBox}>
+            <Text style={modalStyles.title}>¿Eliminar libro?</Text>
+            <Text style={modalStyles.text}>
+              ¿Estás seguro de que deseas eliminar este libro? Esta acción no se
+              puede deshacer.
+            </Text>
+            <View style={modalStyles.buttonsRow}>
+              <TouchableOpacity
+                style={[modalStyles.button, modalStyles.cancel]}
+                onPress={() => setShowConfirm(false)}
+              >
+                <Text style={modalStyles.buttonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[modalStyles.button, modalStyles.delete]}
+                onPress={() => {
+                  setShowConfirm(false);
+                  removeBook(book._id);
+                }}
+              >
+                <Text style={modalStyles.buttonText}>Eliminar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -399,4 +404,61 @@ const validationSchema = () => ({
       "La fecha de fin debe ser posterior a la fecha de inicio"
     )
     .required("La fecha de fin es requerida"),
+});
+
+const modalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalBox: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 28,
+    width: "80%",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 12,
+    color: "#E75A7C",
+    textAlign: "center",
+  },
+  text: {
+    fontSize: 16,
+    color: "#333",
+    marginBottom: 24,
+    textAlign: "center",
+  },
+  buttonsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    gap: 12,
+  },
+  button: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  cancel: {
+    backgroundColor: "#F3F4F6",
+  },
+  delete: {
+    backgroundColor: "#E75A7C",
+  },
+  buttonText: {
+    color: "#222",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
 });
