@@ -20,7 +20,10 @@ const AuthorCard = ({ author, onAuthorPress }: AuthorsGridProps) => {
           <View style={styles.bgStyles}>
             <Text style={styles.number}>#{`${author.count}`}</Text>
             <Text style={styles.name}>{author.author}</Text>
-            <Image source={{ uri: author.url }} style={styles.image} />
+            <Image
+              source={{ uri: author.url?.replace("http://", "https://") }}
+              style={styles.image}
+            />
           </View>
         </View>
       </View>

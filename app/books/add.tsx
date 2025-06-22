@@ -196,7 +196,10 @@ export default function Add() {
             <View style={styles.bookSpine} />
             <Image
               source={{
-                uri: selectedBook?.imageLinks?.thumbnail,
+                uri: selectedBook?.imageLinks?.thumbnail.replace(
+                  "http://",
+                  "https://"
+                ),
               }}
               style={styles.bookCover}
               resizeMode="cover"
@@ -296,7 +299,9 @@ export default function Add() {
         <View key={index} style={[styles.bookItem, { width: itemWidth }]}>
           <View style={styles.bookImageContainer}>
             <Image
-              source={{ uri: book.imageLinks?.thumbnail }}
+              source={{
+                uri: book.imageLinks?.thumbnail.replace("http://", "https://"),
+              }}
               style={styles.bookImage}
             />
           </View>

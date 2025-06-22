@@ -1,6 +1,6 @@
-import { Book } from "@/store/useBooks";
 import React, { memo } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Book } from "./cardBook";
 
 interface BookCardProps {
   book: Book;
@@ -26,7 +26,7 @@ const BookCardComponent: React.FC<BookCardProps> = ({
       <View style={styles.imageContainer}>
         {book.cover ? (
           <Image
-            source={{ uri: book.cover }}
+            source={{ uri: book.cover.replace("http://", "https://") }}
             style={styles.cover}
             resizeMode="cover"
             accessibilityLabel={`Portada de ${book.title}`}

@@ -32,6 +32,7 @@ export interface Book {
   currentPage?: number;
   notes?: string;
   isFavorite?: string;
+  cover?: string;
 }
 
 interface CardBookProps {
@@ -53,7 +54,7 @@ const CardBook = ({ book }: CardBookProps) => {
         <Image
           style={styles.cover}
           source={{
-            uri: book.image_url,
+            uri: book.image_url.replace("http://", "https://"),
           }}
         />
         <View style={styles.info}>

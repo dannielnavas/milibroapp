@@ -42,7 +42,7 @@ export default function Detail() {
     formik.setFieldValue("rating", book.rating || 0);
     formik.setFieldValue("startDate", new Date(book.startDate || new Date()));
     formik.setFieldValue("endDate", new Date(book.endDate || new Date()));
-  }, [book, formik.setFieldValue]); // Added formik.setFieldValue to dependencies
+  }, [book, formik.setFieldValue]);
 
   async function removeBook(id: string) {
     try {
@@ -108,12 +108,7 @@ export default function Detail() {
     const url = `https://milibro-danniel-dev.vercel.app/books/detail?id=${book._id}`;
     await Sharing.shareAsync(url, {
       dialogTitle: "Comparte este libro con tus amigos",
-      UTI: "com.google.Chrome.app",
       mimeType: "text/plain",
-      anchor: {
-        x: 100,
-        y: 100,
-      },
     });
   };
 
@@ -134,7 +129,7 @@ export default function Detail() {
         <View style={styles.bookCoverContainer}>
           <Image
             source={{
-              uri: book.image_url || "",
+              uri: book.image_url.replace("http://", "https://") || "",
             }}
             style={styles.bookCover}
             resizeMode="cover"

@@ -4,6 +4,7 @@ import { AddBookModal } from "@/components/AddBookModal";
 import type { Book } from "@/components/cardBook";
 import { FloatingActionButton } from "@/components/FloatingActionButton";
 import { ManualAddModal } from "@/components/ManualAddModal";
+import { GoogleBooks } from "@/models/books";
 import { useDetailsStore } from "@/store/useDetailsStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { useTitleStore } from "@/store/useTitleStore";
@@ -17,11 +18,13 @@ import {
   Dimensions,
   Easing,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -32,6 +35,7 @@ export default function Index() {
   const [books, setBooks] = useState<Book[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [recommendedBooks, setRecommendedBooks] = useState<GoogleBooks | null>(null);
   const addBook = useDetailsStore((state) => state.addBook);
 
   const slideAnim = useRef(new Animated.Value(300)).current;
@@ -74,6 +78,51 @@ export default function Index() {
     }
   };
 
+  const fetchRecommendedBooks = async (books: Book[]) => {
+    try {
+      const token = await SecureStore.getItemAsync("token");
+      const response = await fetch(
+        `https://milibro-danniel-dev.vercel.app/books/recommendations`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(books),
+        }
+      );
+      const data = await response.text();
+      console.log(data);
+      getBookForTitle(data);
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+    }
+  };
+
+  const getBookForTitle = async (title: string) => {
+    try {
+      const token = await SecureStore.getItemAsync("token");
+      const newTitle = title.split(": ")[1].trim();
+      const response = await fetch(
+        `https://milibro-danniel-dev.vercel.app/books/search-title/${newTitle}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const data = await response.json();
+      data.googleBooks;
+      console.log(data.googleBooks[0]);
+      setRecommendedBooks(data.googleBooks[0]);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const fetchBooks = async (idLibrary: string) => {
     try {
       const token = await SecureStore.getItemAsync("token");
@@ -87,6 +136,7 @@ export default function Index() {
         }
       );
       const data: Book[] = await response.json();
+      fetchRecommendedBooks(data);
       data.sort((a, b) => a.author.localeCompare(b.author));
       setBooks(data);
       setLoading(false);
@@ -143,7 +193,10 @@ export default function Index() {
       >
         <View key={book._id} style={[styles.bookItem, { width: itemWidth }]}>
           <View style={styles.bookImageContainer}>
-            <Image source={{ uri: book.image_url }} style={styles.bookImage} />
+            <Image
+              source={{ uri: book.image_url.replace("http://", "https://") }}
+              style={styles.bookImage}
+            />
             {/*<TouchableOpacity style={styles.favoriteButton}>
             <Ionicons
               name={book.isFavorite ? "heart" : "heart-outline"}
@@ -171,26 +224,38 @@ export default function Index() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Featured Section */}
-        <View style={styles.featuredSection}>
-          <View style={styles.featuredContent}>
-            <View style={styles.featuredText}>
-              <View style={styles.featuredHeader}>
-                <View style={styles.heartIcon}>
-                  <Ionicons name="heart" size={16} color="#FFFFFF" />
+        {recommendedBooks && (
+          <TouchableOpacity
+            onPress={() => Linking.openURL(recommendedBooks?.infoLink ?? "")}
+          >
+            <View style={styles.featuredSection}>
+              <View style={styles.featuredContent}>
+                <View style={styles.featuredText}>
+                  <View style={styles.featuredHeader}>
+                    <View style={styles.heartIcon}>
+                      <Ionicons name="heart" size={16} color="#FFFFFF" />
+                    </View>
+                    <Text style={styles.featuredTitle}>
+                      {recommendedBooks?.title}
+                    </Text>
+                  </View>
+                  <Text style={styles.featuredDescription}>
+                    {recommendedBooks?.description?.slice(0, 250)}...
+                  </Text>
                 </View>
-                <Text style={styles.featuredTitle}>Top-20 detectives</Text>
+                <Image
+                  source={{
+                    uri: recommendedBooks?.imageLinks?.thumbnail.replace(
+                      "http://",
+                      "https://"
+                    ),
+                  }}
+                  style={styles.featuredImage}
+                />
               </View>
-              <Text style={styles.featuredDescription}>
-                Let's pull back the curtain on what books are currently on the minds
-                and tongues of this community
-              </Text>
             </View>
-            <Image
-              source={{ uri: "https://picsum.photos/120/160?random=featured" }}
-              style={styles.featuredImage}
-            />
-          </View>
-        </View>
+          </TouchableOpacity>
+        )}
 
         {/* Filter Buttons */}
         {/* <View style={styles.filterContainer}>
