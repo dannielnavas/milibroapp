@@ -84,7 +84,6 @@ export default function Add() {
         body: JSON.stringify(payload),
       });
       const data = await response.json();
-      console.log("resultado", data);
 
       router.replace("/(tabs)#index");
       setTitle("");
@@ -152,7 +151,6 @@ export default function Add() {
       );
 
       const data: SearchBook = await response.json();
-      console.log("data", data);
       validateEmptyData(data);
     } catch (error) {
       console.error(error);
