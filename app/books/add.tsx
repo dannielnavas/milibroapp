@@ -16,6 +16,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -45,6 +46,7 @@ export default function Add() {
   const [loading, setLoading] = useState(false);
   const [allResult, setAllResult] = useState<GoogleBooks[]>([]);
   const [selectedBook, setSelectedBook] = useState<GoogleBooks | null>(null);
+  const [newImageUrl, setNewImageUrl] = useState<string | undefined>(undefined);
   const router = useRouter();
   const scannedData = useIsbnCodeStore((state) => state.isbnCode);
   const library = useLibraryStore((state) => state.library);
@@ -59,14 +61,16 @@ export default function Add() {
         author: dataBook.authors?.join(","),
         isbn: dataBook.isbn[0].identifier,
         publication_year: dataBook.publishedDate.split("-")[0],
-        image_url: dataBook.imageLinks?.thumbnail,
+        image_url:
+          newImageUrl ??
+          dataBook.imageLinks?.thumbnail.replace("http://", "https://"),
         lenguaje: dataBook.language,
         startDate: new Date().toISOString(),
         endDate: "",
         status: "reading",
         genre: dataBook.categories?.join(", "),
-        totalPages: dataBook.pages,
-        description: dataBook.description,
+        totalPages: dataBook.pages ?? 0,
+        description: dataBook.description ?? "No hay descripción",
         library: library.id,
         wishlist: library.wishlist,
       };
@@ -148,7 +152,7 @@ export default function Add() {
       );
 
       const data: SearchBook = await response.json();
-
+      console.log("data", data);
       validateEmptyData(data);
     } catch (error) {
       console.error(error);
@@ -196,15 +200,24 @@ export default function Add() {
             <View style={styles.bookSpine} />
             <Image
               source={{
-                uri: selectedBook?.imageLinks?.thumbnail.replace(
-                  "http://",
-                  "https://"
-                ),
+                uri:
+                  newImageUrl ??
+                  selectedBook?.imageLinks?.thumbnail.replace("http://", "https://"),
               }}
               style={styles.bookCover}
               resizeMode="cover"
             />
           </View>
+        </View>
+
+        {/* change image url for user */}
+        <View style={styles.bookInfoContainer}>
+          <Text>Cambiar imagen</Text>
+          <TextInput
+            placeholder="URL de la imagen"
+            value={newImageUrl}
+            onChangeText={(text) => setNewImageUrl(text)}
+          />
         </View>
 
         {/* Book Information */}
