@@ -14,6 +14,7 @@ import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   Dimensions,
   Easing,
@@ -95,7 +96,7 @@ export default function Index() {
         }
       );
       const data = await response.text();
-      console.log(data);
+
       getBookForTitle(data);
       setLoading(false);
     } catch (error) {
@@ -118,10 +119,10 @@ export default function Index() {
       );
       const data = await response.json();
       data.googleBooks;
-      console.log(data.googleBooks[0]);
+
       setRecommendedBooks(data.googleBooks[0]);
     } catch (error) {
-      console.log(error);
+      Alert.alert("Error", "No se encontraron resultados");
     }
   };
 
