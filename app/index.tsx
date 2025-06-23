@@ -21,48 +21,16 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Path, Svg } from "react-native-svg";
 import * as Yup from "yup";
 
 const { width, height } = Dimensions.get("window");
 
-const BookSvg = ({ size = 100 }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M12 6.25278V19.2528M12 6.25278C10.8321 5.47686 9.24649 5 7.5 5C5.75351 5 4.16789 5.47686 3 6.25278V19.2528C4.16789 18.4769 5.75351 18 7.5 18C9.24649 18 10.8321 18.4769 12 19.2528M12 6.25278C13.1679 5.47686 14.7535 5 16.5 5C18.2465 5 19.8321 5.47686 21 6.25278V19.2528C19.8321 18.4769 18.2465 18 16.5 18C14.7535 18 13.1679 18.4769 12 19.2528"
-      stroke="#FFB6C1"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+const BookWithRing = () => (
+  <View style={{ width: 220, height: 220 }}>
+    <Image
+      source={require("@/assets/images/books-image.png")}
+      style={{ width: 220, height: 220 }}
     />
-    <Path
-      d="M7 9H8M7 12H8M16 9H17M16 12H17"
-      stroke="#B19CD9"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
-const BookWithRing = ({ size = 120 }) => (
-  <View style={[styles.bookContainer, { width: size + 50, height: size + 50 }]}>
-    <View style={styles.ringContainer}>
-      <View
-        style={[
-          styles.ring,
-          { width: size + 30, height: size + 30, borderRadius: (size + 30) / 2 },
-        ]}
-      />
-    </View>
-    <View
-      style={[
-        styles.bookWrapper,
-        { width: size, height: size, borderRadius: size / 2 },
-      ]}
-    >
-      <BookSvg size={size * 0.7} />
-    </View>
   </View>
 );
 
@@ -190,9 +158,14 @@ export default function App() {
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.header}>
-              <BookWithRing size={100} />
-              <PixelatedText text="Welcome Back" style={styles.welcomeText} />
-              <Text style={styles.subtitleText}>Sign in to continue</Text>
+              <BookWithRing />
+              <PixelatedText
+                text="Welcome to My Library"
+                style={styles.welcomeText}
+              />
+              <Text style={styles.subtitleText}>
+                Sign in to continue to your library
+              </Text>
             </View>
 
             <Formik
@@ -418,6 +391,7 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.7)",
     fontSize: 16,
     textAlign: "center",
+    width: "80%",
   },
   formContainer: {
     flex: 1,
