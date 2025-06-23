@@ -24,6 +24,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -36,6 +37,7 @@ export default function Index() {
   const [modalVisible, setModalVisible] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [recommendedBooks, setRecommendedBooks] = useState<GoogleBooks | null>(null);
+  const [search, setSearch] = useState("");
   const addBook = useDetailsStore((state) => state.addBook);
 
   const slideAnim = useRef(new Animated.Value(300)).current;
@@ -270,8 +272,23 @@ export default function Index() {
         </View> */}
 
         {/* Books Grid */}
+        <View>
+          <Text style={styles.filterText}>Books</Text>
+          <TextInput
+            style={styles.filterTextInput}
+            placeholder="Search"
+            value={search}
+            onChangeText={(text) => setSearch(text)}
+          />
+        </View>
         <View style={styles.booksGrid}>
-          {books.map((book, index) => renderBookItem(book, index))}
+          {books
+            .filter(
+              (book) =>
+                book.title.toLowerCase().includes(search.toLowerCase()) ||
+                book.author.toLowerCase().includes(search.toLowerCase())
+            )
+            .map((book, index) => renderBookItem(book, index))}
         </View>
       </ScrollView>
       <FloatingActionButton onPress={openModal} />
@@ -465,5 +482,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#6B7280",
     marginTop: 4,
+  },
+  filterTextInput: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 16,
   },
 });
