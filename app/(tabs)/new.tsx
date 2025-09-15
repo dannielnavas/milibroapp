@@ -1,60 +1,59 @@
-import { Book, CardBook } from "@/components/cardBook";
+import { AddBookModal } from "@/components/AddBookModal";
+import { Book } from "@/components/cardBook";
+import { FloatingActionButton } from "@/components/FloatingActionButton";
+import { ManualAddModal } from "@/components/ManualAddModal";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { useTitleStore } from "@/store/useTitleStore";
 import { useUserStore } from "@/store/useUserStore";
-import { MaterialIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Animated,
+  Dimensions,
   Easing,
-  FlatList,
-  Modal,
-  Platform,
+  Image,
   Pressable,
+  ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Library } from ".";
 
-const FloatingActionButton = ({ onPress }: { onPress: () => void }) => (
-  <TouchableOpacity style={styles.fab} onPress={onPress}>
-    <MaterialIcons name="add" size={24} color="#FFFFFF" />
-  </TouchableOpacity>
-);
+interface Library {
+  _id: string;
+  wishlist: boolean;
+}
 
 export default function New() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [books, setBooks] = useState<Book[]>([]);
-  const userData = useUserStore((state) => state.user);
-  const addLibrary = useLibraryStore((state) => state.addLibrary);
-  const [isVisible, setIsVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const slideAnim = useRef(new Animated.Value(300)).current; // Altura inicial fuera de la pantalla
+  const [isVisible, setIsVisible] = useState(false);
+  const [search, setSearch] = useState("");
+  const addLibrary = useLibraryStore((state) => state.addLibrary);
+  const slideAnim = useRef(new Animated.Value(300)).current;
   const title = useTitleStore((state) => state.title);
   const setTitle = useTitleStore((state) => state.setTitle);
+  const userData = useUserStore((state) => state.user);
 
   const openModal = () => {
     setIsVisible(true);
-    Animated.timing(slideAnim, {
-      toValue: 0, // Se posicionará en la parte inferior visible
-      duration: 300,
-      easing: Easing.out(Easing.ease),
+    Animated.spring(slideAnim, {
+      toValue: 0,
       useNativeDriver: true,
+      bounciness: 8,
     }).start();
   };
 
   const closeModal = () => {
     Animated.timing(slideAnim, {
-      toValue: 300, // Se desliza hacia abajo
+      toValue: 300,
       duration: 300,
       easing: Easing.in(Easing.ease),
       useNativeDriver: true,
@@ -111,6 +110,7 @@ export default function New() {
         }
       );
       const data: Book[] = await response.json();
+      data.sort((a, b) => a.author.localeCompare(b.author));
       setBooks(data);
       setLoading(false);
     } catch (error) {
@@ -118,122 +118,115 @@ export default function New() {
     }
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={["#6366F1", "#8B5CF6"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
-      >
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Nuevos Libros</Text>
-            <View style={styles.statsContainer}>
-              <MaterialIcons name="book" size={20} color="#FFFFFF" />
-              <Text style={styles.statsText}>{books.length} libros</Text>
-            </View>
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "BOOK":
+        return "#F59E0B";
+      case "PODCAST":
+        return "#8B5CF6";
+      case "SUMMARY":
+        return "#06B6D4";
+      default:
+        return "#6B7280";
+    }
+  };
+
+  const renderBookItem = (book: Book, index: number) => {
+    const itemWidth = (Dimensions.get("window").width - 60) / 3;
+
+    return (
+      <Pressable key={book._id} onPress={() => {}}>
+        <View key={book._id} style={[styles.bookItem, { width: itemWidth }]}>
+          <View style={styles.bookImageContainer}>
+            <Image
+              source={{ uri: book.image_url.replace("http://", "https://") }}
+              style={styles.bookImage}
+            />
+          </View>
+          <View style={styles.bookInfo}>
+            <Text style={[styles.bookType, { color: getTypeColor("BOOK") }]}>
+              {book.author}
+            </Text>
+            <Text style={styles.bookTitle} numberOfLines={2}>
+              {book.title}
+            </Text>
           </View>
         </View>
-      </LinearGradient>
+      </Pressable>
+    );
+  };
 
-      <View style={styles.content}>
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Header Section */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Nuevos Libros</Text>
+          <Text style={styles.headerSubtitle}>
+            {books.length} libros en tu lista de deseos
+          </Text>
+        </View>
+
+        {/* Search Section */}
+        <View>
+          <Text style={styles.filterText}>Libros</Text>
+          <TextInput
+            style={styles.filterTextInput}
+            placeholder="Buscar"
+            value={search}
+            onChangeText={(text) => setSearch(text)}
+          />
+        </View>
+
+        {/* Books Grid */}
         {books.length === 0 ? (
           <View style={styles.emptyState}>
-            <MaterialIcons name="auto-stories" size={48} color="#6366F1" />
+            <Ionicons name="book-outline" size={48} color="#6B7280" />
             <Text style={styles.emptyStateText}>No hay libros nuevos</Text>
             <Text style={styles.emptyStateSubtext}>
               Añade libros a tu lista de deseos
             </Text>
           </View>
         ) : (
-          <FlatList
-            data={books}
-            numColumns={2}
-            showsVerticalScrollIndicator={false}
-            keyExtractor={(book) => String(book._id)}
-            renderItem={({ item }) => <CardBook book={item} />}
-            contentContainerStyle={styles.flatListContent}
-            onEndReachedThreshold={0.1}
-            ListFooterComponent={
-              loading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color="#6366F1" />
-                  <Text style={styles.loadingText}>Cargando más libros...</Text>
-                </View>
-              ) : null
-            }
-          />
+          <View style={styles.booksGrid}>
+            {books
+              .filter(
+                (book) =>
+                  book.title.toLowerCase().includes(search.toLowerCase()) ||
+                  book.author.toLowerCase().includes(search.toLowerCase())
+              )
+              .map((book, index) => renderBookItem(book, index))}
+          </View>
         )}
-      </View>
+      </ScrollView>
 
-      <Modal transparent visible={isVisible} animationType="none">
-        <View style={styles.modalOverlay}>
-          <Pressable style={styles.overlay} onPress={closeModal} />
-          <Animated.View
-            style={[styles.modalContent, { transform: [{ translateY: slideAnim }] }]}
-          >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Añadir nuevo libro</Text>
-              <TouchableOpacity onPress={closeModal} style={styles.closeIcon}>
-                <MaterialIcons name="close" size={24} color="#1E293B" />
-              </TouchableOpacity>
-            </View>
+      <FloatingActionButton onPress={openModal} />
 
-            <TouchableOpacity
-              onPress={() => {
-                closeModal();
-                setModalVisible(true);
-              }}
-              style={styles.modalOption}
-            >
-              <MaterialIcons name="edit" size={24} color="#6366F1" />
-              <View style={styles.modalOptionText}>
-                <Text style={styles.modalOptionTitle}>Añadir manualmente</Text>
-                <Text style={styles.modalOptionSubtitle}>
-                  Busca y añade un libro por su título
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
-      </Modal>
+      <AddBookModal
+        isVisible={isVisible}
+        closeModal={closeModal}
+        onCameraPress={() => {
+          closeModal();
+          router.push("/books/camera");
+        }}
+        onManualPress={() => {
+          closeModal();
+          setModalVisible(true);
+        }}
+      />
 
-      <Modal
-        animationType="slide"
-        transparent={true}
+      <ManualAddModal
         visible={modalVisible}
-        onRequestClose={() => {
+        onClose={() => setModalVisible(false)}
+        onSearch={() => {
           setModalVisible(false);
           router.push("/books/add");
         }}
-      >
-        <View style={styles.searchModalContainer}>
-          <View style={styles.searchModalContent}>
-            <Text style={styles.searchModalTitle}>Buscar libro</Text>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Título del libro"
-              placeholderTextColor="#94A3B8"
-              value={title ?? ""}
-              onChangeText={(text) => setTitle(text)}
-              keyboardType="default"
-              autoCapitalize="none"
-            />
-            <TouchableOpacity
-              style={styles.searchButton}
-              onPress={() => {
-                setModalVisible(false);
-                router.push("/books/add");
-              }}
-            >
-              <Text style={styles.searchButtonText}>Buscar libro</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      <FloatingActionButton onPress={openModal} />
+        title={title}
+        setTitle={setTitle}
+      />
     </SafeAreaView>
   );
 }
@@ -241,198 +234,95 @@ export default function New() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
-  },
-  headerGradient: {
-    paddingTop: 20,
-    paddingBottom: 30,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
+    backgroundColor: "#F9FAFB",
   },
   header: {
-    paddingHorizontal: 24,
-  },
-  headerContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    backgroundColor: "#F9FAFB",
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "700",
-    color: "#FFFFFF",
-    letterSpacing: 0.5,
+    color: "#111827",
+    marginBottom: 4,
   },
-  statsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 8,
-  },
-  statsText: {
-    color: "#FFFFFF",
+  headerSubtitle: {
     fontSize: 14,
-    fontWeight: "600",
+    color: "#6B7280",
   },
   content: {
     flex: 1,
-    paddingTop: 20,
+    paddingHorizontal: 16,
+  },
+  filterText: {
+    fontSize: 14,
+    color: "#374151",
+    marginBottom: 8,
+    fontWeight: "600",
+  },
+  filterTextInput: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    backgroundColor: "#FFFFFF",
+    fontSize: 16,
+  },
+  booksGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingBottom: 20,
+  },
+  bookItem: {
+    marginBottom: 16,
+  },
+  bookImageContainer: {
+    position: "relative",
+    marginBottom: 8,
+  },
+  bookImage: {
+    width: "100%",
+    height: 220,
+    borderRadius: 8,
+    backgroundColor: "#E5E7EB",
+  },
+  bookInfo: {
+    paddingHorizontal: 4,
+  },
+  bookType: {
+    fontSize: 10,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    marginBottom: 2,
+  },
+  bookTitle: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#111827",
+    lineHeight: 16,
   },
   emptyState: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
+    paddingVertical: 60,
   },
   emptyStateText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "600",
-    color: "#1E293B",
+    color: "#111827",
     marginTop: 16,
-  },
-  emptyStateSubtext: {
-    fontSize: 16,
-    color: "#64748B",
-    marginTop: 8,
     textAlign: "center",
   },
-  flatListContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-  loadingContainer: {
-    padding: 20,
-    alignItems: "center",
-  },
-  loadingText: {
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: "#6B7280",
     marginTop: 8,
-    fontSize: 14,
-    color: "#6366F1",
-    fontWeight: "500",
-  },
-  fab: {
-    position: "absolute",
-    right: 24,
-    bottom: 24,
-    backgroundColor: "#6366F1",
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: "center",
-    alignItems: "center",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#6366F1",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  overlay: {
-    flex: 1,
-  },
-  modalContent: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#1E293B",
-  },
-  closeIcon: {
-    padding: 8,
-  },
-  modalOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    backgroundColor: "#F8FAFC",
-    borderRadius: 12,
-    gap: 16,
-  },
-  modalOptionText: {
-    flex: 1,
-  },
-  modalOptionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1E293B",
-  },
-  modalOptionSubtitle: {
-    fontSize: 14,
-    color: "#64748B",
-    marginTop: 2,
-  },
-  searchModalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  searchModalContent: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    padding: 24,
-    width: "90%",
-    maxWidth: 400,
-  },
-  searchModalTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#1E293B",
-    marginBottom: 16,
-  },
-  searchInput: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: "#1E293B",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  searchButton: {
-    backgroundColor: "#6366F1",
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
-    marginTop: 16,
-  },
-  searchButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
+    textAlign: "center",
   },
 });

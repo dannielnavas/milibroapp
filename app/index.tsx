@@ -7,6 +7,7 @@ import * as SecureStore from "expo-secure-store";
 import { Formik } from "formik";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Dimensions,
   Image,
@@ -50,6 +51,7 @@ export default function App() {
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [hasBiometric, setHasBiometric] = useState(false);
   const [userData, setUserData] = useState<Record<string, any> | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const addUserData = useUserStore((state) => state.addUser);
 
   const handleLogin = async (values: { email: string; password: string }) => {
@@ -86,7 +88,12 @@ export default function App() {
       addUserData(data);
       await SecureStore.setItemAsync(
         "dataUser",
-        JSON.stringify({ email, password, name: data.user.name })
+        JSON.stringify({
+          email,
+          password,
+          name: data.user.name,
+          image: data.user.image,
+        })
       );
       ToastAndroid.show("¡Bienvenido!", ToastAndroid.SHORT);
       router.replace("/(tabs)#index");
@@ -205,20 +212,30 @@ export default function App() {
 
                   <View style={styles.inputContainer}>
                     <Text style={styles.inputLabel}>Password</Text>
-                    <TextInput
-                      style={[
-                        styles.input,
-                        touched.password && errors.password && styles.inputError,
-                      ]}
-                      placeholder="Enter your password"
-                      placeholderTextColor="rgba(255, 255, 255, 0.5)"
-                      value={values.password}
-                      onChangeText={handleChange("password")}
-                      onBlur={handleBlur("password")}
-                      secureTextEntry
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                    />
+                    <View style={styles.passwordContainer}>
+                      <TextInput
+                        style={[
+                          styles.passwordInput,
+                          touched.password && errors.password && styles.inputError,
+                        ]}
+                        placeholder="Enter your password"
+                        placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                        value={values.password}
+                        onChangeText={handleChange("password")}
+                        onBlur={handleBlur("password")}
+                        secureTextEntry={!showPassword}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                      />
+                      <TouchableOpacity
+                        style={styles.eyeButton}
+                        onPress={() => setShowPassword(!showPassword)}
+                      >
+                        <Text style={styles.eyeIcon}>
+                          {showPassword ? "👁️" : "👁️‍🗨️"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                     {touched.password && errors.password && (
                       <Text style={styles.errorText}>{errors.password}</Text>
                     )}
@@ -255,6 +272,16 @@ export default function App() {
           <View style={styles.homeIndicator} />
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      {/* Loading Overlay */}
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#B19CD9" />
+            <Text style={styles.loadingText}>Iniciando sesión...</Text>
+          </View>
+        </View>
+      )}
     </LinearGradient>
   ) : (
     <LinearGradient colors={["#2D1B4E", "#1E0E33"]} style={styles.container}>
@@ -265,10 +292,7 @@ export default function App() {
             <PixelatedText text="Log in" style={styles.loginText} />
 
             <TouchableOpacity style={styles.userCard} onPress={handleAuthentication}>
-              <Image
-                source={{ uri: "https://via.placeholder.com/40" }}
-                style={styles.avatar}
-              />
+              <Image source={{ uri: userData?.image }} style={styles.avatar} />
               <View style={styles.userInfo}>
                 <Text style={styles.userName}>{userData?.name}</Text>
                 <Text style={styles.userEmail}>{userData?.email}</Text>
@@ -283,6 +307,16 @@ export default function App() {
           <View style={styles.homeIndicator} />
         </View>
       </SafeAreaView>
+
+      {/* Loading Overlay for Biometric */}
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#B19CD9" />
+            <Text style={styles.loadingText}>Verificando identidad...</Text>
+          </View>
+        </View>
+      )}
     </LinearGradient>
   );
 }
@@ -417,6 +451,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",
   },
+  passwordContainer: {
+    position: "relative",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  passwordInput: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 12,
+    padding: 16,
+    paddingRight: 50,
+    fontSize: 16,
+    color: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    flex: 1,
+  },
+  eyeButton: {
+    position: "absolute",
+    right: 16,
+    padding: 4,
+  },
+  eyeIcon: {
+    fontSize: 20,
+    color: "rgba(255, 255, 255, 0.7)",
+  },
   inputError: {
     borderColor: "#FF6B6B",
   },
@@ -478,5 +537,31 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     alignSelf: "center",
     marginBottom: 10,
+  },
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  loadingContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 20,
+    padding: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 200,
+  },
+  loadingText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    marginTop: 15,
+    textAlign: "center",
+    fontWeight: "500",
   },
 });

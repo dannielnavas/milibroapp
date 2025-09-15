@@ -1,12 +1,15 @@
-import Feather from "@expo/vector-icons/Feather";
-import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 const IconNew = ({ color }: { color: string }) => (
-  <FontAwesome5 name="book-open" size={24} color={color} />
+  <Ionicons name="library-outline" size={26} color={color} />
 );
 
 const IconBook = ({ color }: { color: string }) => (
-  <Feather name="book" size={24} color={color} />
+  <Ionicons name="book-outline" size={26} color={color} />
 );
 
-export { IconBook, IconNew };
+const IconSettings = ({ color }: { color: string }) => (
+  <Ionicons name="settings-outline" size={26} color={color} />
+);
+
+export { IconBook, IconNew, IconSettings };

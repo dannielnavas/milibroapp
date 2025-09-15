@@ -10,5 +10,6 @@ interface User {
   role: string;
   name: string;
   library: string[];
+  image: string;
   __v: number;
 }
