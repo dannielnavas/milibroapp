@@ -94,17 +94,14 @@ export default function EditProfileScreen() {
 
     try {
       const token = await SecureStore.getItemAsync("token");
-      const response = await fetch(
-        "https://milibro-danniel-dev.vercel.app/cloudinary/upload",
-        {
-          method: "POST",
-          body: formData,
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch("http://192.168.10.49:3000/cloudinary/upload", {
+        method: "POST",
+        body: formData,
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const result = await response.json();
       console.log("URL de la imagen:", result);

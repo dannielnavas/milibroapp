@@ -68,16 +68,13 @@ export default function App() {
     password: string;
   }) => {
     try {
-      const response = await fetch(
-        "https://milibro-danniel-dev.vercel.app/auth/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        }
-      );
+      const response = await fetch("http://192.168.10.49:3000/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
       if (!response.ok) {
         throw new Error("Credenciales inválidas");
@@ -289,10 +286,10 @@ export default function App() {
         <View style={styles.content}>
           <View style={styles.centerContent}>
             <BookWithRing />
-            <PixelatedText text="Log in" style={styles.loginText} />
+            <PixelatedText text="Login" style={styles.loginText} />
 
             <TouchableOpacity style={styles.userCard} onPress={handleAuthentication}>
-              <Image source={{ uri: userData?.image }} style={styles.avatar} />
+              <Image source={{ uri: userData?.image ?? "" }} style={styles.avatar} />
               <View style={styles.userInfo}>
                 <Text style={styles.userName}>{userData?.name}</Text>
                 <Text style={styles.userEmail}>{userData?.email}</Text>
@@ -303,8 +300,6 @@ export default function App() {
               <Text style={styles.anotherAccountText}>Use another account</Text>
             </TouchableOpacity>
           </View>
-
-          <View style={styles.homeIndicator} />
         </View>
       </SafeAreaView>
 
@@ -339,14 +334,21 @@ const styles = StyleSheet.create({
   },
   loginText: {
     textTransform: "uppercase",
+    textAlign: "center",
+    marginBottom: 20,
+    marginTop: 20,
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+    letterSpacing: 1,
+    fontFamily: Platform.OS === "ios" ? "Courier New" : "monospace",
   },
   userCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 50,
-    padding: 10,
-    paddingHorizontal: 20,
+    padding: 6,
     width: width * 0.8,
     maxWidth: 350,
     marginBottom: 20,
@@ -357,10 +359,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 15,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 10,
   },
   userEmail: {
     color: "#FFFFFF",

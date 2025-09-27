@@ -1,16 +1,16 @@
 import { Book } from "@/components/cardBook";
-import { DateInput } from "@/components/DateInput";
-import { RatingInput } from "@/components/RatingInput";
 import { SubmitButton } from "@/components/SubmitButton";
 import { useDetailsStore } from "@/store/useDetailsStore";
-import { AntDesign } from "@expo/vector-icons";
+import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useFormik } from "formik";
 import { useEffect, useState } from "react";
 import {
   Alert,
+  SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -44,50 +44,44 @@ export default function EditBook() {
     initialValues: initialValues(),
     validationSchema: Yup.object().shape({
       title: Yup.string()
-        .required("El título es obligatorio")
-        .min(2, "El título debe tener al menos 2 caracteres"),
+        .required("The title is required")
+        .min(2, "The title must have at least 2 characters"),
       author: Yup.string()
-        .required("El autor es obligatorio")
-        .min(2, "El autor debe tener al menos 2 caracteres"),
+        .required("The author is required")
+        .min(2, "The author must have at least 2 characters"),
       genre: Yup.string()
-        .required("El género es obligatorio")
-        .min(2, "El género debe tener al menos 2 caracteres"),
-      status: Yup.string()
-        .required("El estado es obligatorio")
-        .oneOf(["reading", "completed", "wishlist"], "Estado no válido"),
+        .required("The genre is required")
+        .min(2, "The genre must have at least 2 characters"),
       totalPages: Yup.number()
-        .required("El número de páginas es obligatorio")
-        .min(1, "Debe tener al menos 1 página"),
+        .required("The number of pages is required")
+        .min(1, "Must have at least 1"),
       currentPage: Yup.number().when("status", {
         is: "reading",
         then: (schema) =>
           schema
-            .required("La página actual es obligatoria")
-            .min(1, "Debe ser al menos 1")
-            .max(Yup.ref("totalPages"), "No puede ser mayor que el total"),
+            .required("The current page is required")
+            .min(1, "Must have at least 1")
+            .max(Yup.ref("totalPages"), "Cannot be greater than the total"),
       }),
       notes: Yup.string(),
       isFavorite: Yup.boolean(),
       rating: Yup.number()
-        .min(0, "La calificación mínima es 0")
-        .max(5, "La calificación máxima es 5"),
-      startDate: Yup.date().required("La fecha de inicio es obligatoria"),
+        .min(0, "The minimum rating is 0")
+        .max(5, "The maximum rating is 5"),
+      startDate: Yup.date().required("The start date is required"),
       endDate: Yup.date().when("status", {
         is: "completed",
         then: (schema) =>
           schema
-            .required("La fecha de fin es obligatoria")
-            .min(
-              Yup.ref("startDate"),
-              "La fecha de fin debe ser posterior a la de inicio"
-            ),
+            .required("The end date is required")
+            .min(Yup.ref("startDate"), "The end date must be after the start date"),
       }),
     }),
     validateOnChange: false,
     onSubmit: async (values) => {
       try {
         const token = await SecureStore.getItemAsync("token");
-        const url = `https://milibro-danniel-dev.vercel.app/books/${book._id}`;
+        const url = `http://192.168.10.49:3000/books/${book._id}`;
         const response = await fetch(url, {
           method: "PUT",
           headers: {
@@ -102,26 +96,26 @@ export default function EditBook() {
         });
 
         if (response.status === 200) {
-          Alert.alert("Libro editado", "El libro ha sido editado", [
+          Alert.alert("Book edited", "The book has been edited", [
             {
-              text: "Aceptar",
+              text: "Accept",
               onPress: () => router.push("/(tabs)#index"),
             },
           ]);
         } else {
-          throw new Error("Error al editar el libro");
+          throw new Error("Error editing the book");
         }
       } catch (error) {
         console.error(error);
-        Alert.alert("Error", "No se pudo editar el libro");
+        Alert.alert("Error", "The book could not be edited");
       }
     },
   });
 
   const getStatusText = (status: string) => {
-    if (status === "reading") return "Leyendo";
-    if (status === "completed") return "Leído";
-    return "Deseado";
+    if (status === "reading") return "Reading";
+    if (status === "completed") return "Read";
+    return "Wishlist";
   };
 
   useEffect(() => {
@@ -140,136 +134,125 @@ export default function EditBook() {
   }, [book, formData.setFieldValue]);
 
   return (
-    <ScrollView style={styles.editForm}>
-      <Text style={styles.formLabel}>Título</Text>
-      <TextInput
-        style={styles.input}
-        value={formData.values.title}
-        onChangeText={(text) => formData.setFieldValue("title", text)}
-        placeholder="Título del libro"
-      />
-
-      <Text style={styles.formLabel}>Autor</Text>
-      <TextInput
-        style={styles.input}
-        value={formData.values.author}
-        onChangeText={(text) => formData.setFieldValue("author", text)}
-        placeholder="Autor del libro"
-      />
-
-      <Text style={styles.formLabel}>Género</Text>
-      <TextInput
-        style={styles.input}
-        value={formData.values.genre}
-        onChangeText={(text) => formData.setFieldValue("genre", text)}
-        placeholder="Género"
-      />
-
-      <Text style={styles.formLabel}>Estado</Text>
-      <View style={styles.statusButtons}>
-        {["reading", "completed", "wishlist"].map((status) => (
+    <>
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" />
+        {/* Header */}
+        <View style={styles.header}>
           <TouchableOpacity
-            key={status}
-            style={[
-              styles.statusButton,
-              formData.values.status === status && styles.statusButtonActive,
-            ]}
-            onPress={() => formData.setFieldValue("status", status)}
+            style={styles.headerButton}
+            onPress={() => router.back()}
           >
-            <Text
-              style={[
-                styles.statusButtonText,
-                formData.values.status === status && styles.statusButtonTextActive,
-              ]}
-            >
-              {getStatusText(status)}
-            </Text>
+            <Ionicons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
-        ))}
-      </View>
-
-      <RatingInput
-        rating={formData.values.rating}
-        onRatingChange={(rating) => formData.setFieldValue("rating", rating)}
-        error={formData.errors.rating}
-        touched={formData.touched.rating}
-      />
-
-      <DateInput
-        label="Fecha de inicio:"
-        date={formData.values.startDate}
-        showPicker={showStartPicker}
-        setShowPicker={setShowStartPicker}
-        onDateChange={(date) => formData.setFieldValue("startDate", date)}
-        error={formData.errors.startDate as string | undefined}
-        touched={!!formData.touched.startDate}
-      />
-
-      <DateInput
-        label="Fecha de fin:"
-        date={formData.values.endDate}
-        showPicker={showEndPicker}
-        setShowPicker={setShowEndPicker}
-        onDateChange={(date) => formData.setFieldValue("endDate", date)}
-        error={formData.errors.endDate as string | undefined}
-        touched={!!formData.touched.endDate}
-      />
-
-      <Text style={styles.formLabel}>Páginas totales</Text>
-      <TextInput
-        style={styles.input}
-        value={formData.values.totalPages?.toString()}
-        onChangeText={(text) => formData.setFieldValue("totalPages", text)}
-        placeholder="Número de páginas"
-        keyboardType="numeric"
-      />
-
-      {formData.values.status === "reading" && (
-        <>
-          <Text style={styles.formLabel}>Página actual</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.values.currentPage?.toString()}
-            onChangeText={(text) => formData.setFieldValue("currentPage", text)}
-            placeholder="Página actual"
-            keyboardType="numeric"
-          />
-        </>
-      )}
-
-      <Text style={styles.formLabel}>Notas personales</Text>
-      <TextInput
-        style={[styles.input, styles.textArea]}
-        value={formData.values.notes}
-        onChangeText={(text) => formData.setFieldValue("notes", text)}
-        placeholder="Escribe tus notas aquí"
-        multiline
-        numberOfLines={4}
-      />
-
-      <TouchableOpacity
-        style={styles.favoriteToggle}
-        onPress={() =>
-          formData.setFieldValue("isFavorite", !formData.values.isFavorite)
-        }
-      >
-        <AntDesign
-          name={formData.values.isFavorite ? "heart" : "hearto"}
-          size={24}
-          color={formData.values.isFavorite ? "#ff4081" : "#666"}
+          <Text style={styles.headerTitle}>{book.title}</Text>
+        </View>
+      </SafeAreaView>
+      <ScrollView style={styles.editForm}>
+        <Text style={styles.formLabel}>Title</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.values.title}
+          onChangeText={(text) => formData.setFieldValue("title", text)}
+          placeholder="Title of the book"
         />
-        <Text style={styles.favoriteToggleText}>
-          {formData.values.isFavorite
-            ? "Quitar de favoritos"
-            : "Marcar como favorito"}
-        </Text>
-      </TouchableOpacity>
-      <SubmitButton onPress={() => formData.handleSubmit()} />
-    </ScrollView>
+
+        <Text style={styles.formLabel}>Author</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.values.author}
+          onChangeText={(text) => formData.setFieldValue("author", text)}
+          placeholder="Author of the book"
+        />
+
+        <Text style={styles.formLabel}>Genre</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.values.genre}
+          onChangeText={(text) => formData.setFieldValue("genre", text)}
+          placeholder="Genre"
+        />
+
+        <Text style={styles.formLabel}>Total pages</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.values.totalPages?.toString()}
+          onChangeText={(text) => formData.setFieldValue("totalPages", text)}
+          placeholder="Number of pages"
+          keyboardType="numeric"
+        />
+
+        {formData.values.status === "reading" && (
+          <>
+            <Text style={styles.formLabel}>Current page</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.values.currentPage?.toString()}
+              onChangeText={(text) => formData.setFieldValue("currentPage", text)}
+              placeholder="Current page"
+              keyboardType="numeric"
+            />
+          </>
+        )}
+
+        <Text style={styles.formLabel}>Personal notes</Text>
+        <TextInput
+          style={[styles.input, styles.textArea]}
+          value={formData.values.notes}
+          onChangeText={(text) => formData.setFieldValue("notes", text)}
+          placeholder="Write your notes here"
+          multiline
+          numberOfLines={4}
+        />
+
+        <TouchableOpacity
+          style={styles.favoriteToggle}
+          onPress={() =>
+            formData.setFieldValue("isFavorite", !formData.values.isFavorite)
+          }
+        >
+          <AntDesign
+            name={formData.values.isFavorite ? "heart" : "hearto"}
+            size={24}
+            color={formData.values.isFavorite ? "#ff4081" : "#666"}
+          />
+          <Text style={styles.favoriteToggleText}>
+            {formData.values.isFavorite
+              ? "Remove from favorites"
+              : "Mark as favorite"}
+          </Text>
+        </TouchableOpacity>
+        <SubmitButton onPress={() => formData.handleSubmit()} />
+      </ScrollView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    paddingTop: 0,
+    backgroundColor: "#f5f5f5",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#f5f5f5",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  headerButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+    flex: 1,
+    marginLeft: 16,
+  },
   editForm: {
     flex: 1,
     backgroundColor: "#F8FAFC",

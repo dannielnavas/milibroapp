@@ -65,7 +65,7 @@ export default function Index() {
     try {
       const token = await SecureStore.getItemAsync("token");
       const response = await fetch(
-        `https://milibro-danniel-dev.vercel.app/library/${idUser}/${wishlist}`,
+        `http://192.168.10.49:3000/library/${idUser}/${wishlist}`,
         {
           method: "GET",
           headers: {
@@ -85,7 +85,7 @@ export default function Index() {
     try {
       const token = await SecureStore.getItemAsync("token");
       const response = await fetch(
-        `https://milibro-danniel-dev.vercel.app/books/recommendations`,
+        `http://192.168.10.49:3000/books/recommendations`,
         {
           method: "POST",
           headers: {
@@ -109,7 +109,7 @@ export default function Index() {
       const token = await SecureStore.getItemAsync("token");
       const newTitle = title.split(": ")[1].trim();
       const response = await fetch(
-        `https://milibro-danniel-dev.vercel.app/books/search-title/${newTitle}`,
+        `http://192.168.10.49:3000/books/search-title/${newTitle}`,
         {
           method: "GET",
           headers: {
@@ -129,15 +129,12 @@ export default function Index() {
   const fetchBooks = async (idLibrary: string) => {
     try {
       const token = await SecureStore.getItemAsync("token");
-      const response = await fetch(
-        `https://milibro-danniel-dev.vercel.app/books/${idLibrary}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`http://192.168.10.49:3000/books/${idLibrary}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const data: Book[] = await response.json();
       fetchRecommendedBooks(data);
       data.sort((a, b) => a.author.localeCompare(b.author));

@@ -75,7 +75,7 @@ export default function Add() {
         wishlist: library.wishlist,
       };
       const token = await SecureStore.getItemAsync("token");
-      const response = await fetch("https://milibro-danniel-dev.vercel.app/books", {
+      const response = await fetch("http://192.168.10.49:3000/books", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -107,7 +107,7 @@ export default function Add() {
     try {
       const token = await SecureStore.getItemAsync("token");
       const response = await fetch(
-        `https://milibro-danniel-dev.vercel.app/books/search-title/${title}`,
+        `http://192.168.10.49:3000/books/search-title/${title}`,
         {
           method: "GET",
           headers: {
@@ -141,7 +141,7 @@ export default function Add() {
     try {
       const token = await SecureStore.getItemAsync("token");
       const response = await fetch(
-        `https://milibro-danniel-dev.vercel.app/books/search/${isbn}`,
+        `http://192.168.10.49:3000/books/search/${isbn}`,
         {
           method: "GET",
           headers: {
